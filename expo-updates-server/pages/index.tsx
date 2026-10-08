@@ -1,4 +1,5 @@
 import Head from "next/head";
+import ProjectIcon, { ProjectAvatar } from "../components/ProjectIcon";
 import ConnectProject from "../components/ConnectProject";
 import DeleteProject from "../components/DeleteProject";
 import BrandMark from "../components/BrandMark";
@@ -26,7 +27,7 @@ type Props = {
   profile: Profile | null;
   notice: string;
   section: string;
-  projects: { name: string; slug: string }[];
+  projects: { name: string; slug: string; hasIcon: boolean }[];
   project: string;
   releases: Release[];
   configured: boolean;
@@ -61,7 +62,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
   if (!auth.authorized(req)) return { props: empty };
   const releases: Release[] = [];
   let scanError = false;
-  const projects: { name: string; slug: string }[] = [];
+  const projects: { name: string; slug: string; hasIcon: boolean }[] = [];
   const base = path.resolve("updates");
   try {
     for (const entry of await fs.readdir(path.join(base, "projects"), {
@@ -76,7 +77,11 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
             "utf8",
           ),
         );
-        projects.push({ name: String(item.name), slug: entry.name });
+        const hasIcon = await fs
+          .stat(path.join(base, "projects", entry.name, ".icon.png"))
+          .then((stat) => stat.isFile())
+          .catch(() => false);
+        projects.push({ name: String(item.name), slug: entry.name, hasIcon });
       } catch {}
     }
   } catch {}
@@ -534,9 +539,11 @@ export default function Dashboard({
                         key={item.slug}
                         href={link("overview", item.slug)}
                       >
-                        <span className={styles.projectAvatar}>
-                          {item.name.charAt(0).toUpperCase()}
-                        </span>
+                        <ProjectAvatar
+                          name={item.name}
+                          project={item.slug}
+                          hasIcon={item.hasIcon}
+                        />
                         <h2>{item.name}</h2>
                         <p>{item.slug}</p>
                         <span className={styles.cardFooter}>
@@ -571,15 +578,21 @@ export default function Dashboard({
               {section === "overview" && project && (
                 <>
                   <div className={styles.projectHero}>
-                    <span className={styles.projectAvatar}>
-                      {current?.name.charAt(0).toUpperCase()}
-                    </span>
+                    <ProjectAvatar
+                      key={project}
+                      name={current?.name || project}
+                      project={project}
+                      hasIcon={!!current?.hasIcon}
+                    />
                     <div>
                       <h2>{current?.name}</h2>
                       <p>{project}</p>
                     </div>
                     <a className={styles.primary} href={link("publish")}>
                       Publicar atualização
+                    </a>
+                    <a className={styles.button} href={link("general")}>
+                      Editar ícone
                     </a>
                   </div>
                   <div className={styles.stats}>
@@ -730,6 +743,14 @@ export default function Dashboard({
               {section === "general" && (
                 <section className={styles.panel}>
                   <h2>{current?.name || "Aplicativo legado / padrão"}</h2>
+                  {project && (
+                    <ProjectIcon
+                      key={project}
+                      name={current?.name || project}
+                      project={project}
+                      hasIcon={!!current?.hasIcon}
+                    />
+                  )}
                   <dl className={styles.definition}>
                     <dt>Slug</dt>
                     <dd>{project || "Legado"}</dd>

@@ -133,3 +133,12 @@ de reiniciar. Não remova travas durante operações ativas.
 
 Testes adicionais: node --test tests/projects.test.cjs.
 Em servidor de teste descartável: node tests/projects-http.cjs (porta 3100 e credenciais de teste).
+
+## Ícone do projeto
+Abra o projeto e clique em **Editar ícone**, ou acesse **Configurações > Ícone do projeto**.
+Escolha um PNG, JPEG ou WebP estático de até 2 MB e 4096 × 4096 pixels e clique em Salvar ícone.
+A imagem é decodificada e convertida para PNG de 256 × 256, sem metadados, e fica no volume
+em projects/SLUG/.icon.png. Aparece no card e na visão geral. Remover ícone restaura a inicial;
+excluir o projeto também exclui a imagem. O upload não altera o ícone do app instalado.
+A leitura e gravação exigem login; uploads também exigem a origem do painel.
+Testes: node --test tests/icon.test.cjs; teste HTTP no servidor descartável: node tests/icon-http.cjs.

@@ -817,3 +817,25 @@
 .dangerZone > button {
   color: #b42318;
 }
+
+.projectAvatar {
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.projectAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: white;
+}
+.iconEditor {
+  padding: 4px 0 22px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  max-width: 620px;
+}
+.iconEditor .projectAvatar {
+  width: 72px;
+  height: 72px;
+}

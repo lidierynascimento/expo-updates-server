@@ -7,7 +7,7 @@ Servidor OTA: https://expo.vdigitalslab.com
 - Projeto: servers
 - Serviço: expo-updates
 - Repositório: https://github.com/lidierynascimento/expo-updates-server.git
-- Branch de validação: feat/easypanel-deploy
+- Branch de implantação: main
 - Método de build: Dockerfile
 - Dockerfile: Dockerfile
 - Contexto de build: raiz do repositório (.)
@@ -17,6 +17,8 @@ Servidor OTA: https://expo.vdigitalslab.com
 ## Ambiente
 HOSTNAME=https://expo.vdigitalslab.com
 NEXT_TELEMETRY_DISABLED=1
+DASHBOARD_USERNAME=admin
+DASHBOARD_PASSWORD=SUBSTITUA_POR_UMA_SENHA_FORTE
 
 Neste exemplo upstream, HOSTNAME é a URL pública usada nos links dos assets.
 O processo escuta em 0.0.0.0 pelo argumento explícito do comando de inicialização.
@@ -29,7 +31,8 @@ A imagem não inclui atualizações nem chaves de demonstração.
 Não é necessário banco de dados.
 
 ## Validação inicial
-Abrir a página inicial após o deploy.
+Abrir a página inicial após o deploy e entrar com as credenciais configuradas.
+Consultar DASHBOARD.md para criar projetos e publicar pelo painel.
 GET /api/manifest sem plataforma retorna 400.
 GET /api/manifest?platform=android&runtime-version=1 retorna 404 enquanto não houver atualização publicada.
 Isso valida o serviço, não comprova entrega OTA ao app.

@@ -47,7 +47,7 @@ test("GitHub dispatch and downloads enforce repository, workflow and artifact sc
       json({ id: 9 }),
       json({
         artifacts: [
-          { id: 30, name: "app-mob-passenger-apk-1", expired: false },
+          { id: 30, name: "other-project-apk-1", expired: false },
         ],
       }),
     ];
@@ -70,7 +70,7 @@ test("GitHub dispatch and downloads enforce repository, workflow and artifact sc
       json({ id: 9 }),
       json({
         artifacts: [
-          { id: 30, name: "app-mob-passenger-apk-1", expired: false },
+          { id: 30, name: "other-project-apk-1", expired: false },
         ],
       }),
       new Response(null, {

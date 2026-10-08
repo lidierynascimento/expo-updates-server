@@ -347,7 +347,7 @@ export default function Dashboard({
     "android-credentials": "Android · Credenciais",
     "ios-credentials": "iOS · Credenciais",
     "ios-builds": "iOS · Builds e TestFlight",
-    integrations: "Integrações do servidor",
+    integrations: "Integrações",
     credentials: "Credenciais Android e iOS",
     tokens: "Tokens de acesso",
     devices: "Dispositivos Apple",
@@ -528,14 +528,14 @@ export default function Dashboard({
                 href="/?section=integrations"
                 className={section === "integrations" ? styles.active : ""}
               >
-                <Icon name="settings" />
+                <Icon name="plug" />
                 <span>Integrações</span>
               </a>
               <a
                 href="/?section=account"
                 className={section === "account" ? styles.active : ""}
               >
-                <Icon name="settings" />
+                <Icon name="user" />
                 <span>Minha conta</span>
               </a>
             </nav>
@@ -985,6 +985,8 @@ function Icon({ name }: { name: string }) {
     plus: "M12 4v16M4 12h16",
     logout: "M9 3H3v18h6M8 12h13M16 7l5 5-5 5",
     settings: "M4 7h16M4 17h16M8 4v6M16 14v6",
+    plug: "M8 2v5M16 2v5M6 7h12v4a6 6 0 0 1-12 0V7zM12 17v5",
+    user: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM15 9a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM5.5 18a7 7 0 0 1 13 0",
   };
   return (
     <svg

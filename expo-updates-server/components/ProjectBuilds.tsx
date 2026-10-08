@@ -160,7 +160,7 @@ export default function ProjectBuilds({ project }: { project: string }) {
               onChange={(e) => setRepository(e.target.value)}
               required
               maxLength={140}
-              placeholder="lidierynascimento/app-mobi-urban-passenger"
+              placeholder="organizacao/repositorio"
             />
           </label>
           <button disabled={busy}>Salvar repositório</button>

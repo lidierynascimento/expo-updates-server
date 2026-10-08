@@ -1,6 +1,13 @@
 .app {
+  --surface: #ffffff;
+  --canvas: #f3f4f6;
+  --surface-muted: #e8ebef;
+  --surface-strong: #dde2e8;
+  --border: #c8cfd7;
+  --radius-card: 12px;
+  --radius-control: 8px;
   min-height: 100vh;
-  background: #fff;
+  background: var(--canvas);
   color: #1f2328;
   font:
     13px -apple-system,
@@ -39,8 +46,8 @@
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
-  border: 1px solid #d1d9e0;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
   background: #f6f8fa;
   color: #25292e;
   padding: 7px 12px;
@@ -65,8 +72,8 @@
   width: 100%;
   min-width: 0;
   padding: 9px 10px;
-  border: 1px solid #d1d9e0;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
   background: white;
   color: #1f2328;
   font: inherit;
@@ -98,7 +105,7 @@
   border: 1px solid #1a7f37;
   color: white;
   padding: 8px 13px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -118,8 +125,8 @@
   position: sticky;
   top: 0;
   height: 100vh;
-  border-right: 1px solid #d1d9e0;
-  background: #f6f8fa;
+  border-right: 1px solid var(--border);
+  background: var(--surface-muted);
   display: flex;
   flex-direction: column;
   padding: 22px 14px 12px;
@@ -151,7 +158,7 @@
 }
 .projectSelect {
   padding: 0 8px 20px;
-  border-bottom: 1px solid #d1d9e0;
+  border-bottom: 1px solid var(--border);
 }
 .projectSelect label {
   font-size: 9px;
@@ -177,17 +184,17 @@
   align-items: center;
   gap: 9px;
   padding: 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   font-size: 12px;
   color: #3d444d;
   border-left: 3px solid transparent;
   margin: 2px 0;
 }
 .sidebar nav a:hover {
-  background: #eaeef2;
+  background: var(--surface-strong);
 }
 .sidebar nav a.active {
-  background: #e7edf4;
+  background: #d6e2ef;
   border-left-color: #0969da;
   color: #1f2328;
   font-weight: 600;
@@ -201,9 +208,11 @@
   display: flex;
   gap: 9px;
   align-items: center;
-  padding: 14px 5px 0;
-  border-top: 1px solid #d1d9e0;
+  padding: 12px 8px;
+  border: 1px solid var(--border);
   margin-top: 14px;
+  border-radius: var(--radius-card);
+  background: var(--surface-strong);
 }
 .avatar {
   border-radius: 50%;
@@ -233,11 +242,12 @@
 }
 .topbar {
   height: 62px;
-  border-bottom: 1px solid #d1d9e0;
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 30px;
+  background: var(--surface-muted);
 }
 .breadcrumb {
   font-size: 12px;
@@ -249,7 +259,7 @@
 }
 .badge {
   padding: 3px 9px;
-  border: 1px solid #d1d9e0;
+  border: 1px solid var(--border);
   border-radius: 20px;
   color: #59636e;
   font-size: 10px;
@@ -283,11 +293,12 @@
   flex-wrap: wrap;
 }
 .panel {
-  border: 1px solid #d1d9e0;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
   padding: 20px;
   margin: 16px 0;
-  box-shadow: 0 1px 0 rgba(31, 35, 40, 0.03);
+  box-shadow: 0 2px 5px rgba(31, 35, 40, 0.04);
+  background: var(--surface);
 }
 .projectGrid {
   display: grid;
@@ -295,13 +306,15 @@
   gap: 16px;
 }
 .app .projectCard {
-  border: 1px solid #d1d9e0;
-  border-radius: 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
   padding: 22px 20px 0;
   color: #1f2328;
   transition:
     box-shadow 0.15s,
     border-color 0.15s;
+  background: var(--surface);
+  overflow: hidden;
 }
 .projectCard:hover {
   border-color: #0969da;
@@ -332,8 +345,10 @@
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  padding: 12px 0;
+  padding: 12px 20px;
   color: #59636e;
+  margin: 0 -20px;
+  background: var(--surface-muted);
 }
 .app .newCard {
   min-height: 195px;
@@ -341,8 +356,8 @@
   flex-direction: column;
   gap: 10px;
   border: 1px dashed #bac5d0;
-  background: #f6f8fa;
-  border-radius: 9px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
   white-space: normal;
 }
 .newCard svg {
@@ -367,9 +382,9 @@
   align-items: center;
   gap: 14px;
   padding: 20px;
-  border: 1px solid #d1d9e0;
-  background: linear-gradient(110deg, #f6f8fa, #fff);
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: linear-gradient(110deg, var(--surface-muted), var(--surface));
+  border-radius: var(--radius-card);
 }
 .projectHero .projectAvatar {
   margin: 0;
@@ -392,8 +407,9 @@
 }
 .stats article {
   padding: 18px;
-  border: 1px solid #d1d9e0;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 .stats article > span {
   font-size: 11px;
@@ -412,8 +428,8 @@
 .endpoint {
   display: block;
   background: #f6f8fa;
-  border: 1px solid #d1d9e0;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
   padding: 12px;
   margin: 16px 0;
   color: #0969da;
@@ -421,8 +437,8 @@
 .empty {
   text-align: center;
   padding: 48px 20px;
-  border: 1px dashed #d1d9e0;
-  border-radius: 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-card);
   background: #f6f8fa;
   margin: 16px 0;
 }
@@ -435,9 +451,10 @@
 }
 .tableWrap {
   overflow: auto;
-  border: 1px solid #d1d9e0;
-  border-radius: 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
   margin-top: 18px;
+  background: var(--surface);
 }
 .app table {
   border-collapse: collapse;
@@ -446,8 +463,8 @@
   text-align: left;
 }
 .app th {
-  background: #f6f8fa;
-  color: #59636e;
+  background: var(--surface-muted);
+  color: #3d444d;
   font-size: 11px;
   font-weight: 500;
 }
@@ -476,7 +493,7 @@
   background: #fff8c5;
   color: #7d4e00 !important;
   border: 1px solid #eac54f;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 10px 12px;
 }
 .definition {
@@ -516,15 +533,16 @@
   margin-bottom: 26px;
 }
 .dialog {
-  border: 1px solid #d1d9e0;
+  border: 1px solid var(--border);
   padding: 0;
-  border-radius: 12px;
+  border-radius: 16px;
   max-width: 480px;
   width: calc(100vw - 32px);
   max-height: 90vh;
-  box-shadow: 0 16px 70px #0003;
+  box-shadow: 0 20px 64px #1f232833;
   color: #1f2328;
   background: #fff;
+  overflow: auto;
 }
 .dialog::backdrop {
   background: #10182880;
@@ -534,9 +552,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #d1d9e0;
+  border-bottom: 1px solid var(--border);
   padding: 16px 20px;
-  background: #f6f8fa;
+  background: var(--surface-strong);
 }
 .dialogHeader h2 {
   margin: 0;
@@ -554,7 +572,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  border-top: 1px solid #d1d9e0;
+  border-top: 1px solid var(--border);
   margin-top: 24px;
   padding-top: 16px;
 }
@@ -562,8 +580,8 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   background: #f6f8fa;
-  border: 1px solid #d1d9e0;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
   padding: 14px;
   font-size: 12px;
 }
@@ -704,7 +722,7 @@
   border: 1px solid #ace1bb;
   color: #1a6332 !important;
   padding: 12px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
 }
 .brandIcon {
   background: transparent;
@@ -722,10 +740,11 @@
 }
 
 .connectPanel {
-  border: 1px solid #d1d9e0;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
   overflow: hidden;
   margin-top: 20px;
+  background: var(--surface);
 }
 .connectPanel > p,
 .connectHeading,
@@ -734,7 +753,7 @@
 }
 .connectHeading {
   display: flex;
-  align-items: start;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
@@ -749,9 +768,9 @@
   display: flex;
   gap: 4px;
   overflow-x: auto;
-  background: #f6f8fa;
+  background: var(--surface-strong);
   padding: 8px 12px 0;
-  border-top: 1px solid #d1d9e0;
+  border-top: 1px solid var(--border);
 }
 .codeTabs button {
   border: 0;
@@ -771,9 +790,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border-bottom: 1px solid #d1d9e0;
+  border-bottom: 1px solid var(--border);
   color: #59636e;
   font-size: 12px;
+  background: var(--surface-muted);
 }
 .connectionCode {
   margin: 0;
@@ -790,7 +810,7 @@
 }
 .dangerZone {
   border: 1px solid #e6aaa7;
-  border-radius: 7px;
+  border-radius: var(--radius-card);
   margin-top: 30px;
   padding: 18px;
 }

@@ -1,5 +1,6 @@
 const crypto = require("node:crypto");
 const attempts = new Map();
+const account = require("./admin-account.cjs");
 const hash = (value) => crypto.createHash("sha256").update(value).digest();
 const equal = (a, b) => crypto.timingSafeEqual(hash(a), hash(b));
 function configured() {
@@ -8,7 +9,13 @@ function configured() {
 function mac(value) {
   return crypto
     .createHmac("sha256", process.env.DASHBOARD_PASSWORD)
-    .update(process.env.DASHBOARD_USERNAME + ":" + value)
+    .update(
+      process.env.DASHBOARD_USERNAME +
+        ":" +
+        account.sessionVersion() +
+        ":" +
+        value,
+    )
     .digest("hex");
 }
 function token(now = Date.now()) {
@@ -60,7 +67,7 @@ function credentials(username, password) {
   )
     return false;
   const a = equal(username, process.env.DASHBOARD_USERNAME);
-  const b = equal(password, process.env.DASHBOARD_PASSWORD);
+  const b = account.verify(password);
   return a && b;
 }
 function cookie(value, age = 28800) {

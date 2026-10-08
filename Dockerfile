@@ -1,10 +1,10 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY expo-updates-server/package.json expo-updates-server/yarn.lock ./
-RUN yarn install --frozen-lockfile --non-interactive
+COPY expo-updates-server/package.json expo-updates-server/package-lock.json ./
+RUN npm ci --no-audit --no-fund
 COPY expo-updates-server/ ./
-RUN yarn build
+RUN npm run build
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app

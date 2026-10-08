@@ -1,77 +1,62 @@
-import fs from 'fs';
-import fsPromises from 'fs/promises';
-import mime from 'mime';
-import { NextApiRequest, NextApiResponse } from 'next';
-import nullthrows from 'nullthrows';
-import path from 'path';
-
-import {
-  getLatestUpdateBundlePathForRuntimeVersionAsync,
-  getMetadataAsync,
-} from '../../common/helpers';
-
-export default async function assetsEndpoint(req: NextApiRequest, res: NextApiResponse) {
-  const { asset: assetName, runtimeVersion, platform } = req.query;
-
-  if (!assetName || typeof assetName !== 'string') {
-    res.statusCode = 400;
-    res.json({ error: 'No asset name provided.' });
-    return;
-  }
-
-  if (platform !== 'ios' && platform !== 'android') {
-    res.statusCode = 400;
-    res.json({ error: 'No platform provided. Expected "ios" or "android".' });
-    return;
-  }
-
-  if (!runtimeVersion || typeof runtimeVersion !== 'string') {
-    res.statusCode = 400;
-    res.json({ error: 'No runtimeVersion provided.' });
-    return;
-  }
-
-  let updateBundlePath: string;
+import fs from "fs/promises";
+import mime from "mime";
+import path from "path";
+import type { NextApiRequest, NextApiResponse } from "next";
+const storage = require("../../common/admin-storage.cjs");
+export default async function assets(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
+  if (req.method !== "GET")
+    return res.status(405).json({ error: "Expected GET" });
+  const { asset, runtimeVersion, platform, project } = req.query;
+  if (
+    typeof asset !== "string" ||
+    typeof runtimeVersion !== "string" ||
+    !storage.safeRuntime(runtimeVersion) ||
+    (platform !== "android" && platform !== "ios")
+  )
+    return res.status(400).json({ error: "Invalid request" });
+  if (project !== undefined && !storage.safeProject(project))
+    return res.status(400).json({ error: "Invalid project" });
+  const base = project
+    ? `updates/projects/${project}/${runtimeVersion}/`
+    : `updates/${runtimeVersion}/`;
+  if (!asset.startsWith(base))
+    return res.status(400).json({ error: "Invalid asset path" });
+  const relative = asset.slice(base.length);
+  const split = relative.indexOf("/");
+  const version = relative.slice(0, split);
+  const file = relative.slice(split + 1);
+  if (split < 0 || !/^\d+$/.test(version) || !storage.safePath(file))
+    return res.status(400).json({ error: "Invalid asset path" });
   try {
-    updateBundlePath = await getLatestUpdateBundlePathForRuntimeVersionAsync(runtimeVersion);
-  } catch (error: any) {
-    res.statusCode = 404;
-    res.json({
-      error: error.message,
-    });
-    return;
-  }
-
-  const { metadataJson } = await getMetadataAsync({
-    updateBundlePath,
-    runtimeVersion,
-  });
-
-  const assetPath = path.resolve(assetName);
-  const assetMetadata = metadataJson.fileMetadata[platform].assets.find(
-    (asset: any) => asset.path === assetName.replace(`${updateBundlePath}/`, ''),
-  );
-  const isLaunchAsset =
-    metadataJson.fileMetadata[platform].bundle === assetName.replace(`${updateBundlePath}/`, '');
-
-  if (!fs.existsSync(assetPath)) {
-    res.statusCode = 404;
-    res.json({ error: `Asset "${assetName}" does not exist.` });
-    return;
-  }
-
-  try {
-    const asset = await fsPromises.readFile(assetPath, null);
-
-    res.statusCode = 200;
-    res.setHeader(
-      'content-type',
-      isLaunchAsset ? 'application/javascript' : nullthrows(mime.getType(assetMetadata.ext)),
+    const folder = path.resolve(base, version);
+    const realFolder = await fs.realpath(folder);
+    const realRoot = await fs.realpath("updates");
+    const actual = await fs.realpath(path.join(folder, file));
+    if (
+      !realFolder.startsWith(realRoot + path.sep) ||
+      !actual.startsWith(realFolder + path.sep)
+    )
+      return res.status(400).json({ error: "Invalid asset path" });
+    const metadata = JSON.parse(
+      await fs.readFile(path.join(folder, "metadata.json"), "utf8"),
     );
-    res.end(asset);
-  } catch (error) {
-    console.log(error);
-    res.statusCode = 500;
-    res.json({ error });
+    const info = metadata.fileMetadata[platform];
+    const item = info.assets.find((entry: any) => entry.path === file);
+    if (info.bundle !== file && !item)
+      return res.status(404).json({ error: "Unknown asset" });
+    const content = await fs.readFile(actual);
+    res.setHeader(
+      "Content-Type",
+      info.bundle === file
+        ? "application/javascript"
+        : mime.getType(item.ext) || "application/octet-stream",
+    );
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    return res.status(200).send(content);
+  } catch {
+    return res.status(404).json({ error: "Asset not found" });
   }
 }

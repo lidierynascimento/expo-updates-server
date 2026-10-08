@@ -143,15 +143,48 @@ excluir o projeto também exclui a imagem. O upload não altera o ícone do app 
 A leitura e gravação exigem login; uploads também exigem a origem do painel.
 Testes: node --test tests/icon.test.cjs; teste HTTP no servidor descartável: node tests/icon-http.cjs.
 
-## Builds e downloads — primeira etapa
-Selecione o projeto, abra **Builds e downloads** e salve o repositório como usuario/repositorio.
-O vínculo fica em projects/SLUG/.builds.json e é apagado com o projeto. Os botões abrem o
-workflow android-apk.yml no GitHub. É necessário esse workflow existir no repositório do app.
-Esta etapa não armazena tokens GitHub, não consulta status em tempo real e não dispara
-builds pelo backend: execução, logs e download são feitos no GitHub com o login do usuário.
-O APK é entregue como artifact ZIP por 14 dias após uma execução manual bem-sucedida.
-A chave publicável do Clerk deve estar nas Variables do Actions ou no formulário Run workflow;
-as variáveis/credenciais guardadas no painel não são injetadas nesse workflow.
-O APK de teste usa a assinatura configurada pelo projeto; a assinatura de loja vem depois.
-Para iOS sem Mac, o próximo fluxo será executor macOS/Xcode e TestFlight com Apple Developer
-Program e assinatura configurada. Nenhuma compilação iOS está ativa nesta etapa.
+## Navegação por contexto
+A área geral contém Todos os projetos, Integrações e Minha conta. Ações de aplicativo
+aparecem somente após selecionar um projeto. O menu desse projeto separa OTA,
+Android (APK/builds e credenciais), iOS (TestFlight, credenciais e dispositivos) e
+configurações compartilhadas (tokens OTA, variáveis e configurações). As credenciais
+existentes são preservadas e filtradas pela plataforma. A opção legado exige seleção
+explícita; abrir Publicar sem projeto não seleciona o legado automaticamente.
+Cada card contém Gerar APK, que abre a área Android do aplicativo no próprio vDeploy.
+
+## GitHub Actions dentro do vDeploy
+Em EasyPanel configure:
+
+```env
+GITHUB_BUILD_TOKEN=TOKEN_FINE_GRAINED_SOMENTE_NO_SERVIDOR
+GITHUB_BUILD_REPOSITORIES=lidierynascimento/app-mobi-urban-passenger
+```
+
+O token deve ter permissão Actions: leitura e escrita, limitado aos repositórios necessários.
+Separe repositórios permitidos por vírgula. Não use NEXT_PUBLIC, não coloque o token no app
+nem no Git. A página global Integrações explica essa configuração; os valores não são
+retornados ao navegador. Reimplante após configurar. A conexão GitHub desta conversa não
+é uma credencial que o servidor do vDeploy possa reutilizar automaticamente.
+
+No projeto, abra Android > Gerar APK e builds, salve usuario/repositorio e clique Gerar APK.
+Escolha a branch/tag e opcionalmente informe a chave PUBLICÁVEL do Clerk; se vazia, o workflow
+usa a variável já cadastrada no GitHub. A chave do formulário é enviada ao workflow e não é
+persistida pelo painel. O arquivo android-apk.yml com workflow_dispatch deve existir no repo.
+A solicitação pode consumir a franquia de Actions. O painel não tenta novamente um dispatch
+automaticamente; em caso de timeout, confira o histórico antes de repetir.
+
+O painel lista as últimas 10 execuções manuais do workflow desse repositório, com atualização
+a cada 15 segundos. Repositórios vinculados a vários projetos compartilham esse histórico.
+O GitHub faz a compilação; vDeploy dispara, consulta estado e oferece o download.
+Downloads ZIP exigem sessão do painel, repositório autorizado, build desse workflow concluído
+e artifact não expirado. O backend obtém um endereço temporário de download e redireciona o
+navegador, sem encaminhar o token ao armazenamento. O artifact deve usar o prefixo
+app-mob-passenger-apk- do workflow atual. Logs detalhados continuam no GitHub.
+
+O APK de teste usa a assinatura configurada pelo repositório. Credenciais/variáveis
+armazenadas no vDeploy ainda não são aplicadas ao build. A assinatura para loja é separada.
+O workflow iOS não está ativo: a página iOS informa os requisitos de macOS na nuvem,
+Apple Developer Program, App Store Connect, certificados e TestFlight.
+
+Verificação: node --test tests/github-builds.test.cjs (GitHub simulado, sem builds pagos).
+Teste HTTP em servidor descartável: node tests/builds-http.cjs.

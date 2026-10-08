@@ -10,10 +10,12 @@ const labels: Record<string, string> = {
 export default function ProjectSettings({
   project,
   kind,
+  platform,
   onRequestProject,
 }: {
   project: string;
   kind: string;
+  platform?: "android" | "ios";
   onRequestProject: () => void;
 }) {
   const [rows, setRows] = useState<any[]>([]),
@@ -153,7 +155,11 @@ export default function ProjectSettings({
         </button>
       </section>
     );
-  const visible = rows.filter((row) => row.kind === kind);
+  const visible = rows.filter(
+    (row) =>
+      row.kind === kind &&
+      (kind !== "credentials" || !platform || row.platform === platform),
+  );
   return (
     <>
       <div className={s.sectionHeading}>
@@ -174,7 +180,7 @@ export default function ProjectSettings({
             {kind === "environment"
               ? "Valores protegidos por ambiente. Ainda não são injetados automaticamente em builds ou exports."
               : kind === "credentials"
-                ? "Guarde arquivos Android e iOS neste projeto. O armazenamento não valida a assinatura nem executa builds."
+                ? `Guarde credenciais ${platform === "android" ? "Android" : platform === "ios" ? "iOS" : "do aplicativo"}. Ainda não são aplicadas automaticamente aos builds.`
                 : kind === "devices"
                   ? "Cadastro local de UDIDs. O registro na conta Apple Developer continua separado."
                   : "Tokens limitados à publicação OTA deste projeto. O valor completo aparece apenas na criação."}
@@ -323,9 +329,13 @@ export default function ProjectSettings({
               <>
                 <label>
                   Plataforma
-                  <select name="platform">
-                    <option value="android">Android</option>
-                    <option value="ios">iOS</option>
+                  <select name="platform" defaultValue={platform || "android"}>
+                    {(!platform || platform === "android") && (
+                      <option value="android">Android</option>
+                    )}
+                    {(!platform || platform === "ios") && (
+                      <option value="ios">iOS</option>
+                    )}
                   </select>
                 </label>
                 <label>
@@ -342,7 +352,13 @@ export default function ProjectSettings({
                   <input
                     name="file"
                     type="file"
-                    accept=".jks,.keystore,.p12,.mobileprovision"
+                    accept={
+                      platform === "android"
+                        ? ".jks,.keystore"
+                        : platform === "ios"
+                          ? ".p12,.mobileprovision"
+                          : ".jks,.keystore,.p12,.mobileprovision"
+                    }
                     required
                   />
                 </label>

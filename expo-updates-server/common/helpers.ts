@@ -1,21 +1,30 @@
-import crypto, { BinaryLike, BinaryToTextEncoding } from 'crypto';
-import fsSync from 'fs';
-import fs from 'fs/promises';
-import mime from 'mime';
-import path from 'path';
-import { Dictionary } from 'structured-headers';
+import crypto, { BinaryLike, BinaryToTextEncoding } from "crypto";
+import fsSync from "fs";
+import fs from "fs/promises";
+import mime from "mime";
+import path from "path";
+import { Dictionary } from "structured-headers";
 
 export class NoUpdateAvailableError extends Error {}
 
-function createHash(file: BinaryLike, hashingAlgorithm: string, encoding: BinaryToTextEncoding) {
+function createHash(
+  file: BinaryLike,
+  hashingAlgorithm: string,
+  encoding: BinaryToTextEncoding,
+) {
   return crypto.createHash(hashingAlgorithm).update(file).digest(encoding);
 }
 
 function getBase64URLEncoding(base64EncodedString: string): string {
-  return base64EncodedString.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return base64EncodedString
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
-export function convertToDictionaryItemsRepresentation(obj: { [key: string]: string }): Dictionary {
+export function convertToDictionaryItemsRepresentation(obj: {
+  [key: string]: string;
+}): Dictionary {
   return new Map(
     Object.entries(obj).map(([k, v]) => {
       return [k, [v, new Map()]];
@@ -24,10 +33,10 @@ export function convertToDictionaryItemsRepresentation(obj: { [key: string]: str
 }
 
 export function signRSASHA256(data: string, privateKey: string) {
-  const sign = crypto.createSign('RSA-SHA256');
-  sign.update(data, 'utf8');
+  const sign = crypto.createSign("RSA-SHA256");
+  sign.update(data, "utf8");
   sign.end();
-  return sign.sign(privateKey, 'base64');
+  return sign.sign(privateKey, "base64");
 }
 
 export async function getPrivateKeyAsync() {
@@ -37,27 +46,45 @@ export async function getPrivateKeyAsync() {
   }
 
   const pemBuffer = await fs.readFile(path.resolve(privateKeyPath));
-  return pemBuffer.toString('utf8');
+  return pemBuffer.toString("utf8");
 }
 
-export async function getLatestUpdateBundlePathForRuntimeVersionAsync(runtimeVersion: string) {
-  const updatesDirectoryForRuntimeVersion = `updates/${runtimeVersion}`;
+export async function getLatestUpdateBundlePathForRuntimeVersionAsync(
+  runtimeVersion: string,
+  project?: string,
+) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(runtimeVersion))
+    throw new Error("Invalid runtime version");
+  if (project && !/^[a-z0-9][a-z0-9-]{0,63}$/.test(project))
+    throw new Error("Invalid project");
+  const updatesDirectoryForRuntimeVersion = project
+    ? `updates/projects/${project}/${runtimeVersion}`
+    : `updates/${runtimeVersion}`;
   if (!fsSync.existsSync(updatesDirectoryForRuntimeVersion)) {
-    throw new Error('Unsupported runtime version');
+    throw new Error("Unsupported runtime version");
   }
 
-  const filesInUpdatesDirectory = await fs.readdir(updatesDirectoryForRuntimeVersion);
+  const filesInUpdatesDirectory = await fs.readdir(
+    updatesDirectoryForRuntimeVersion,
+  );
   const directoriesInUpdatesDirectory = (
     await Promise.all(
       filesInUpdatesDirectory.map(async (file) => {
-        const fileStat = await fs.stat(path.join(updatesDirectoryForRuntimeVersion, file));
-        return fileStat.isDirectory() ? file : null;
+        const fileStat = await fs.stat(
+          path.join(updatesDirectoryForRuntimeVersion, file),
+        );
+        return fileStat.isDirectory() && /^\d+$/.test(file) ? file : null;
       }),
     )
   )
     .filter(truthy)
     .sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
-  return path.join(updatesDirectoryForRuntimeVersion, directoriesInUpdatesDirectory[0]);
+  if (!directoriesInUpdatesDirectory.length)
+    throw new Error("No update available");
+  return path.join(
+    updatesDirectoryForRuntimeVersion,
+    directoriesInUpdatesDirectory[0],
+  );
 }
 
 type GetAssetMetadataArg =
@@ -78,20 +105,24 @@ type GetAssetMetadataArg =
       platform: string;
     };
 
-export async function getAssetMetadataAsync(arg: GetAssetMetadataArg) {
+export async function getAssetMetadataAsync(
+  arg: GetAssetMetadataArg & { project?: string },
+) {
   const assetFilePath = `${arg.updateBundlePath}/${arg.filePath}`;
   const asset = await fs.readFile(path.resolve(assetFilePath), null);
-  const assetHash = getBase64URLEncoding(createHash(asset, 'sha256', 'base64'));
-  const key = createHash(asset, 'md5', 'hex');
-  const keyExtensionSuffix = arg.isLaunchAsset ? 'bundle' : arg.ext;
-  const contentType = arg.isLaunchAsset ? 'application/javascript' : mime.getType(arg.ext);
+  const assetHash = getBase64URLEncoding(createHash(asset, "sha256", "base64"));
+  const key = createHash(asset, "md5", "hex");
+  const keyExtensionSuffix = arg.isLaunchAsset ? "bundle" : arg.ext;
+  const contentType = arg.isLaunchAsset
+    ? "application/javascript"
+    : mime.getType(arg.ext);
 
   return {
     hash: assetHash,
     key,
     fileExtension: `.${keyExtensionSuffix}`,
     contentType,
-    url: `${process.env.HOSTNAME}/api/assets?asset=${assetFilePath}&runtimeVersion=${arg.runtimeVersion}&platform=${arg.platform}`,
+    url: `${process.env.HOSTNAME}/api/assets?asset=${assetFilePath}&runtimeVersion=${arg.runtimeVersion}&platform=${arg.platform}${arg.project ? `&project=${arg.project}` : ""}`,
   };
 }
 
@@ -100,7 +131,7 @@ export async function createRollBackDirectiveAsync(updateBundlePath: string) {
     const rollbackFilePath = `${updateBundlePath}/rollback`;
     const rollbackFileStat = await fs.stat(rollbackFilePath);
     return {
-      type: 'rollBackToEmbedded',
+      type: "rollBackToEmbedded",
       parameters: {
         commitTime: new Date(rollbackFileStat.birthtime).toISOString(),
       },
@@ -112,7 +143,7 @@ export async function createRollBackDirectiveAsync(updateBundlePath: string) {
 
 export async function createNoUpdateAvailableDirectiveAsync() {
   return {
-    type: 'noUpdateAvailable',
+    type: "noUpdateAvailable",
   };
 }
 
@@ -125,17 +156,22 @@ export async function getMetadataAsync({
 }) {
   try {
     const metadataPath = `${updateBundlePath}/metadata.json`;
-    const updateMetadataBuffer = await fs.readFile(path.resolve(metadataPath), null);
-    const metadataJson = JSON.parse(updateMetadataBuffer.toString('utf-8'));
+    const updateMetadataBuffer = await fs.readFile(
+      path.resolve(metadataPath),
+      null,
+    );
+    const metadataJson = JSON.parse(updateMetadataBuffer.toString("utf-8"));
     const metadataStat = await fs.stat(metadataPath);
 
     return {
       metadataJson,
       createdAt: new Date(metadataStat.birthtime).toISOString(),
-      id: createHash(updateMetadataBuffer, 'sha256', 'hex'),
+      id: createHash(updateMetadataBuffer, "sha256", "hex"),
     };
   } catch (error) {
-    throw new Error(`No update found with runtime version: ${runtimeVersion}. Error: ${error}`);
+    throw new Error(
+      `No update found with runtime version: ${runtimeVersion}. Error: ${error}`,
+    );
   }
 }
 
@@ -154,8 +190,11 @@ export async function getExpoConfigAsync({
 }): Promise<any> {
   try {
     const expoConfigPath = `${updateBundlePath}/expoConfig.json`;
-    const expoConfigBuffer = await fs.readFile(path.resolve(expoConfigPath), null);
-    const expoConfigJson = JSON.parse(expoConfigBuffer.toString('utf-8'));
+    const expoConfigBuffer = await fs.readFile(
+      path.resolve(expoConfigPath),
+      null,
+    );
+    const expoConfigJson = JSON.parse(expoConfigBuffer.toString("utf-8"));
     return expoConfigJson;
   } catch (error) {
     throw new Error(
@@ -171,6 +210,8 @@ export function convertSHA256HashToUUID(value: string) {
   )}-${value.slice(20, 32)}`;
 }
 
-export function truthy<TValue>(value: TValue | null | undefined): value is TValue {
+export function truthy<TValue>(
+  value: TValue | null | undefined,
+): value is TValue {
   return !!value;
 }

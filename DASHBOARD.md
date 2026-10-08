@@ -142,3 +142,16 @@ em projects/SLUG/.icon.png. Aparece no card e na visão geral. Remover ícone re
 excluir o projeto também exclui a imagem. O upload não altera o ícone do app instalado.
 A leitura e gravação exigem login; uploads também exigem a origem do painel.
 Testes: node --test tests/icon.test.cjs; teste HTTP no servidor descartável: node tests/icon-http.cjs.
+
+## Builds e downloads — primeira etapa
+Selecione o projeto, abra **Builds e downloads** e salve o repositório como usuario/repositorio.
+O vínculo fica em projects/SLUG/.builds.json e é apagado com o projeto. Os botões abrem o
+workflow android-apk.yml no GitHub. É necessário esse workflow existir no repositório do app.
+Esta etapa não armazena tokens GitHub, não consulta status em tempo real e não dispara
+builds pelo backend: execução, logs e download são feitos no GitHub com o login do usuário.
+O APK é entregue como artifact ZIP por 14 dias após uma execução manual bem-sucedida.
+A chave publicável do Clerk deve estar nas Variables do Actions ou no formulário Run workflow;
+as variáveis/credenciais guardadas no painel não são injetadas nesse workflow.
+O APK de teste usa a assinatura configurada pelo projeto; a assinatura de loja vem depois.
+Para iOS sem Mac, o próximo fluxo será executor macOS/Xcode e TestFlight com Apple Developer
+Program e assinatura configurada. Nenhuma compilação iOS está ativa nesta etapa.

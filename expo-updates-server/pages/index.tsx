@@ -1,4 +1,6 @@
 import Head from "next/head";
+import ConnectProject from "../components/ConnectProject";
+import DeleteProject from "../components/DeleteProject";
 import BrandMark from "../components/BrandMark";
 import AccountSettings, { type Profile } from "../components/AccountSettings";
 const account = require("../common/admin-account.cjs");
@@ -20,6 +22,7 @@ type Release = {
   valid: boolean;
 };
 type Props = {
+  serverUrl: string;
   profile: Profile | null;
   notice: string;
   section: string;
@@ -40,6 +43,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   const empty: Props = {
+    serverUrl: process.env.HOSTNAME || "https://expo.vdigitalslab.com",
     profile: null,
     notice:
       query.signedout === "1"
@@ -152,8 +156,14 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
         ].includes(query.section)
           ? query.section
           : "overview",
+      serverUrl: process.env.HOSTNAME || "https://expo.vdigitalslab.com",
       profile: account.profile(),
-      notice: query.saved === "1" ? "Perfil salvo com sucesso." : "",
+      notice:
+        query.saved === "1"
+          ? "Perfil salvo com sucesso."
+          : query.deleted === "1"
+            ? "Projeto excluído."
+            : "",
       releases,
       projects,
       project,
@@ -166,6 +176,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
 };
 
 export default function Dashboard({
+  serverUrl,
   profile,
   notice,
   section,
@@ -587,21 +598,12 @@ export default function Dashboard({
                       </strong>
                     </article>
                   </div>
-                  <section className={styles.panel}>
-                    <h2>Configurar o aplicativo</h2>
-                    <p>
-                      Use este endereço em updates.url e gere um novo build do
-                      aplicativo.
-                    </p>
-                    <code className={styles.endpoint}>
-                      {"https://expo.vdigitalslab.com/api/manifest?project=" +
-                        project}
-                    </code>
-                    <div className={styles.actions}>
-                      <a href={link("updates")}>Histórico de atualizações →</a>
-                      <a href={link("general")}>Configurações →</a>
-                    </div>
-                  </section>
+                  <ConnectProject
+                    key={project}
+                    name={current?.name || project}
+                    project={project}
+                    serverUrl={serverUrl}
+                  />
                 </>
               )}
               {["credentials", "tokens", "devices", "environment"].includes(
@@ -734,7 +736,8 @@ export default function Dashboard({
                     <dt>Servidor de atualizações</dt>
                     <dd>
                       <code>
-                        {"https://expo.vdigitalslab.com/api/manifest" +
+                        {serverUrl.replace(/\/$/, "") +
+                          "/api/manifest" +
                           (project ? "?project=" + project : "")}
                       </code>
                     </dd>
@@ -751,6 +754,7 @@ export default function Dashboard({
                     Apple e configuração de workflows do GitHub Actions
                     continuam separados.
                   </p>
+                  {project && <DeleteProject project={project} />}
                 </section>
               )}
             </main>

@@ -190,7 +190,46 @@ async function projectRoot(root, slug) {
   await fs.readFile(path.join(folder, "project.json"));
   return folder;
 }
+// Shared filesystem lock across API bundles; one operation per project.
+async function withProjectLock(root, slug, operation) {
+  if (!safeProject(slug)) throw new Error("Selecione um projeto válido.");
+  const parent = path.join(root, ".admin", "project-locks");
+  await fs.mkdir(parent, { recursive: true, mode: 0o700 });
+  await inside(root, parent);
+  const lock = path.join(parent, slug);
+  try {
+    await fs.mkdir(lock);
+  } catch (error) {
+    if (error.code === "EEXIST")
+      throw new Error(
+        "Projeto ocupado. Aguarde a operação atual e tente novamente.",
+      );
+    throw error;
+  }
+  try {
+    return await operation();
+  } finally {
+    await fs.rmdir(lock);
+  }
+}
+async function deleteProject(root, slug, confirmation) {
+  if (!safeProject(slug) || confirmation !== slug)
+    throw new Error("Digite exatamente o slug do projeto para excluir.");
+  const folder = await projectRoot(root, slug);
+  const admin = path.join(root, ".admin");
+  try {
+    await inside(root, admin);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  // Remove credentials and token hashes before allowing the slug to be reused.
+  await fs.rm(path.join(admin, slug + ".json"), { force: true });
+  await fs.rm(folder, { recursive: true });
+  return { ok: true };
+}
 module.exports = {
+  withProjectLock,
+  deleteProject,
   publish,
   rollback,
   validate,

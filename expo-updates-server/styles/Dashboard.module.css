@@ -720,3 +720,80 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.connectPanel {
+  border: 1px solid #d1d9e0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+.connectPanel > p,
+.connectHeading,
+.runtimeField {
+  margin: 16px 20px;
+}
+.connectHeading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.connectHeading p {
+  margin: 5px 0 0;
+}
+.runtimeField {
+  display: block;
+  max-width: 250px;
+}
+.codeTabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  background: #f6f8fa;
+  padding: 8px 12px 0;
+  border-top: 1px solid #d1d9e0;
+}
+.codeTabs button {
+  border: 0;
+  border-radius: 5px 5px 0 0;
+  padding: 10px 12px;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+}
+.codeTabs button[aria-selected="true"] {
+  color: #116b46;
+  background: white;
+  border-bottom-color: #238636;
+}
+.codeToolbar {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid #d1d9e0;
+  color: #59636e;
+  font-size: 12px;
+}
+.connectionCode {
+  margin: 0;
+  padding: 20px;
+  max-height: 390px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #d7e2dc;
+  background: #151c19;
+  line-height: 1.7;
+  font-size: 12px;
+  tab-size: 2;
+}
+.dangerZone {
+  border: 1px solid #e6aaa7;
+  border-radius: 7px;
+  margin-top: 30px;
+  padding: 18px;
+}
+.dangerZone > button {
+  color: #b42318;
+}

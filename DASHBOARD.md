@@ -157,7 +157,7 @@ Em EasyPanel configure:
 
 ```env
 GITHUB_BUILD_TOKEN=TOKEN_FINE_GRAINED_SOMENTE_NO_SERVIDOR
-GITHUB_BUILD_REPOSITORIES=lidierynascimento/app-mobi-urban-passenger
+GITHUB_BUILD_REPOSITORIES=organizacao/repositorio
 ```
 
 O token deve ter permissão Actions: leitura e escrita, limitado aos repositórios necessários.
@@ -178,8 +178,7 @@ a cada 15 segundos. Repositórios vinculados a vários projetos compartilham ess
 O GitHub faz a compilação; vDeploy dispara, consulta estado e oferece o download.
 Downloads ZIP exigem sessão do painel, repositório autorizado, build desse workflow concluído
 e artifact não expirado. O backend obtém um endereço temporário de download e redireciona o
-navegador, sem encaminhar o token ao armazenamento. O artifact deve usar o prefixo
-app-mob-passenger-apk- do workflow atual. Logs detalhados continuam no GitHub.
+navegador, sem encaminhar o token ao armazenamento. O nome do artifact deve conter apk como termo separado por hífen ou sublinhado. Logs detalhados continuam no GitHub.
 
 O APK de teste usa a assinatura configurada pelo repositório. Credenciais/variáveis
 armazenadas no vDeploy ainda não são aplicadas ao build. A assinatura para loja é separada.
@@ -188,3 +187,15 @@ Apple Developer Program, App Store Connect, certificados e TestFlight.
 
 Verificação: node --test tests/github-builds.test.cjs (GitHub simulado, sem builds pagos).
 Teste HTTP em servidor descartável: node tests/builds-http.cjs.
+
+
+## Integração genérica e evolução SaaS
+A página Integrações usa exemplos genéricos, símbolo de workflow clicável e orientações
+separadas em acesso, ativação e vínculo do projeto. O botão atual abre a criação de um
+token fine-grained no GitHub; não é autorização OAuth nem instala um GitHub App.
+A configuração administrativa fica recolhida e o campo de repositórios apenas gera
+um modelo copiável de variáveis. Não coleta nem salva o token no navegador.
+Para oferecer Conectar com GitHub a clientes, ainda é necessário registrar um GitHub App,
+implementar o retorno de instalação/autorização e associar as instalações a contas/organizações
+isoladas no vDeploy. A instalação atual continua com uma conta administradora e token do servidor;
+essa mudança de interface não implementa isolamento entre clientes SaaS.

@@ -122,7 +122,7 @@ async function artifacts(repository, runId) {
     "runs/" + runId + "/artifacts?per_page=100",
   );
   return (data.artifacts || [])
-    .filter((a) => a.name.startsWith("app-mob-passenger-apk-"))
+    .filter((a) => /(^|[-_])apk([-_]|$)/i.test(a.name))
     .map((a) => ({
       id: a.id,
       name: a.name,

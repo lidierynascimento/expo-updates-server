@@ -16,7 +16,9 @@ O limite de tentativas fica na memória de uma instância e reinicia com o proce
 Este painel foi preparado para um administrador e uma instância do serviço.
 
 ## Projetos
-Entrar no painel, clicar em Novo projeto e informar nome e slug.
+Entrar no painel, clicar em Novo projeto e informar nome e slug no modal.
+Os cards abrem a visão geral do aplicativo. O seletor e o menu lateral mantêm
+credenciais, tokens, dispositivos e variáveis separados por projeto.
 Cada projeto tem diretório próprio e URL de manifesto mostrada em Configuração.
 O aplicativo legado mantém a URL sem project; os novos usam ?project=SLUG.
 Alterar updates.url no aplicativo exige um novo build nativo.
@@ -48,7 +50,30 @@ Não inclui builds APK/IPA, SSO, membros, billing, canais, rollout percentual ou
 O estado de metadados disponíveis não comprova instalação no celular.
 Assinatura OTA exige chave privada própria montada e certificado correspondente no app.
 
+## Configurações por projeto
+- Credenciais Android e iOS: guardar, consultar, baixar e excluir JKS/keystore/P12/mobileprovision (até 2 MB). A assinatura e a validade do arquivo não são verificadas e o arquivo não é aplicado automaticamente a builds.
+- Variáveis: guardar por ambiente (development/preview/production), consultar e excluir. Não há injeção automática em exports/builds. EXPO_PUBLIC_ será público se incorporado ao aplicativo.
+- Dispositivos Apple: cadastrar nome e UDID localmente; isso não registra o dispositivo no portal Apple Developer.
+- Tokens: criar com validade de 30, 90 ou 365 dias e revogar. O token completo aparece apenas uma vez; somente seu hash fica armazenado.
+
+Arquivos de credenciais, senhas e valores de variáveis são criptografados com AES-256-GCM.
+A chave é gerada no servidor e persistida em /app/updates/.admin/master-key (permissão 0600).
+Faça backup do volume completo, incluindo .admin e a chave; perder a chave impede recuperar esses segredos.
+A criptografia não protege contra alguém com acesso completo ao servidor ou ao backup com a chave.
+As APIs de consulta de segredos exigem a sessão do administrador e a origem do painel.
+
+## Publicação com token
+Enviar POST /api/admin/releases com Authorization: Bearer TOKEN e JSON:
+
+```json
+{"action":"publish","project":"SLUG","runtime":"1.0.0","files":[{"path":"metadata.json","data":"BASE64"}]}
+```
+
+O exemplo ilustra o formato: enviar também expoConfig.json, bundles e assets do export completo.
+O token só permite publicar no próprio projeto; não permite rollback nem acesso às configurações.
+Um workflow GitHub Actions pode chamar essa API, mas nenhum workflow de publicação foi conectado automaticamente.
+
 ## Verificação
-Testes: node --test tests/admin.test.cjs
+Testes: node --test tests/admin.test.cjs tests/settings.test.cjs
 Build: npm ci && npm run build
 Validar a entrega com um app de teste antes de publicar para passageiros.

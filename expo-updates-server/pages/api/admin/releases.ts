@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import path from "path";
 const auth = require("../../../common/admin-auth.cjs");
 const storage = require("../../../common/admin-storage.cjs");
+const settings = require("../../../common/admin-settings.cjs");
 export const config = { api: { bodyParser: { sizeLimit: "48mb" } } };
 export default async function releases(
   req: NextApiRequest,
@@ -10,9 +11,18 @@ export default async function releases(
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST")
     return res.status(405).json({ error: "Método inválido." });
-  if (!auth.authorized(req))
+  const session = auth.authorized(req);
+  const token =
+    !session &&
+    req.body?.action === "publish" &&
+    (await settings.tokenAuthorized(
+      path.resolve("updates"),
+      req.body?.project,
+      req.headers.authorization,
+    ));
+  if (!session && !token)
     return res.status(401).json({ error: "Entre novamente no painel." });
-  if (!auth.sameOrigin(req))
+  if (session && !auth.sameOrigin(req))
     return res.status(403).json({ error: "Origem não autorizada." });
   try {
     const base = path.resolve("updates");
@@ -30,12 +40,10 @@ export default async function releases(
     return res.status(400).json({ error: "Ação inválida." });
   } catch (error: any) {
     console.error("OTA administration:", error.message);
-    return res
-      .status(error.code ? 500 : 400)
-      .json({
-        error: error.code
-          ? "Falha ao gravar. Confira as permissões do volume e espaço disponível."
-          : error.message,
-      });
+    return res.status(error.code ? 500 : 400).json({
+      error: error.code
+        ? "Falha ao gravar. Confira as permissões do volume e espaço disponível."
+        : error.message,
+    });
   }
 }

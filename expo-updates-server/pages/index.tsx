@@ -271,12 +271,12 @@ export default function Dashboard({
       </Head>
       <header>
         <div className="brand">
-          <span className="logo">↗</span>
+          <span className="logo">⟨/⟩</span>
           <div>
             Expo OTA<small>VDigitals Lab</small>
           </div>
         </div>
-        <span className="badge">Servidor próprio</span>
+        <span className="badge">OTA · Self-hosted</span>
       </header>
       {!authorized ? (
         <main className="login">
@@ -778,6 +778,268 @@ export default function Dashboard({
           }
           .badge {
             display: none;
+          }
+        }
+        .shell {
+          background: #ffffff;
+          color: #1f2328;
+          font-family:
+            -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        header {
+          padding: 14px 32px;
+          background: #f6f8fa;
+          border-color: #d1d9e0;
+        }
+        .brand {
+          font-size: 17px;
+          gap: 10px;
+        }
+        .brand small {
+          font-size: 11px;
+          color: #59636e;
+        }
+        .logo {
+          background: #24292f;
+          border-radius: 9px;
+          padding: 8px;
+          font-size: 14px;
+        }
+        .badge {
+          background: #ffffff;
+          color: #59636e;
+          border: 1px solid #d1d9e0;
+          padding: 4px 9px;
+        }
+        main {
+          max-width: 1240px;
+          padding: 24px 28px;
+        }
+        h1 {
+          font-size: 24px;
+          font-weight: 600;
+          letter-spacing: -0.5px;
+          margin: 5px 0;
+        }
+        h2 {
+          font-size: 15px;
+          font-weight: 600;
+          margin-bottom: 12px;
+        }
+        h3 {
+          font-size: 16px;
+          font-weight: 600;
+        }
+        p {
+          color: #59636e;
+          font-size: 13px;
+          line-height: 1.5;
+          margin: 8px 0;
+        }
+        .eyebrow {
+          color: #59636e;
+          font-size: 10px;
+          letter-spacing: 1.5px;
+        }
+        .button,
+        button {
+          background: #1f883d;
+          border: 1px solid #1a7f37;
+          padding: 7px 12px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+        }
+        .button {
+          background: #f6f8fa;
+          border-color: #d1d9e0;
+          color: #25292e;
+        }
+        .secondary {
+          background: #f6f8fa;
+          border-color: #d1d9e0;
+          color: #25292e;
+        }
+        button:hover,
+        .button:hover {
+          filter: brightness(0.97);
+        }
+        input:focus,
+        select:focus {
+          outline: 2px solid #0969da;
+          outline-offset: -1px;
+        }
+        .projectbar {
+          border-bottom: 1px solid #d1d9e0;
+          padding: 14px 0;
+          margin-top: 8px;
+        }
+        .projectbar label {
+          font-size: 11px;
+          color: #59636e;
+        }
+        select,
+        input {
+          border-color: #d1d9e0;
+          border-radius: 6px;
+          padding: 8px 10px;
+          font-size: 13px;
+          margin-top: 5px;
+        }
+        select {
+          min-width: 220px;
+        }
+        nav {
+          margin: 0;
+          gap: 8px;
+          border-bottom: 1px solid #d1d9e0;
+          padding-top: 6px;
+        }
+        nav a {
+          color: #1f2328;
+          font-size: 13px;
+          padding: 12px 14px;
+          border-bottom: 2px solid transparent;
+        }
+        nav a:hover {
+          border-bottom-color: #fd8c73;
+          background: #f6f8fa;
+        }
+        .cards {
+          margin: 16px 0;
+          gap: 12px;
+        }
+        .cards article,
+        .panel {
+          border-color: #d1d9e0;
+          border-radius: 8px;
+          padding: 16px;
+          box-shadow: 0 1px 0 rgba(31, 35, 40, 0.03);
+        }
+        .cards span {
+          font-size: 12px;
+          color: #59636e;
+        }
+        .cards strong {
+          margin-top: 8px;
+          font-size: 26px;
+          font-weight: 600;
+        }
+        .cards .text {
+          font-size: 15px;
+        }
+        .panel {
+          margin: 16px 0;
+        }
+        form {
+          max-width: 100%;
+        }
+        #publish form {
+          display: grid;
+          grid-template-columns: 180px 1fr auto;
+          align-items: end;
+          gap: 12px;
+        }
+        #publish label {
+          margin: 8px 0;
+        }
+        #publish form p {
+          grid-column: 1 / 3;
+          margin: 0;
+          font-size: 11px;
+        }
+        #publish form button {
+          grid-column: 3;
+          grid-row: 1 / 3;
+          align-self: center;
+        }
+        label {
+          font-size: 12px;
+          margin: 14px 0;
+        }
+        .empty {
+          padding: 26px 15px;
+        }
+        .empty > span {
+          color: #0969da;
+          font-size: 26px;
+        }
+        .empty p {
+          max-width: 480px;
+        }
+        th {
+          background: #f6f8fa;
+          color: #59636e;
+          font-size: 11px;
+        }
+        td,
+        th {
+          padding: 10px 12px;
+          border-color: #d1d9e0;
+        }
+        tbody tr:hover {
+          background: #f6f8fa;
+        }
+        .state {
+          padding: 3px 8px;
+          font-size: 11px;
+          border: 1px solid #b4dfc0;
+          background: #dafbe1;
+          color: #1a7f37;
+        }
+        .state.error {
+          border-color: #eac54f;
+          background: #fff8c5;
+          color: #7d4e00;
+        }
+        .info {
+          background: #f6f8fa;
+        }
+        .info p {
+          font-size: 12px;
+        }
+        .info code {
+          color: #0969da;
+          font-size: 12px;
+        }
+        .login {
+          max-width: 380px;
+          margin: 6vh auto;
+        }
+        .login .panel {
+          padding: 24px;
+        }
+        .login button {
+          width: 100%;
+        }
+        @media (max-width: 760px) {
+          main {
+            padding: 18px 14px;
+          }
+          header {
+            padding: 14px 18px;
+          }
+          .projectbar {
+            align-items: end;
+          }
+          select {
+            min-width: 0;
+            max-width: 210px;
+          }
+          .cards {
+            grid-template-columns: 1fr;
+          }
+          #publish form {
+            display: block;
+          }
+          #publish form button {
+            margin-top: 12px;
+          }
+          nav a {
+            padding: 10px;
+          }
+          h1 {
+            font-size: 22px;
           }
         }
       `}</style>

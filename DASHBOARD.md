@@ -101,3 +101,35 @@ credenciais e tokens. Trocar também a variável é necessário para invalidar c
 A identidade vDeploy inclui marca vetorial, favicon e nome no login e na navegação.
 As mudanças do dashboard são registradas em commits descritivos em feat/ota-dashboard,
 validadas e integradas à main, que permanece como branch de implantação.
+
+## Conectar aplicativo
+Ao criar um projeto, a visão geral abre o bloco **Conectar aplicativo**.
+Ele também permanece disponível nos projetos existentes. As abas OpenCode, PowerShell,
+Bash / macOS, Expo / app.json e React Native CLI mostram conteúdo com o slug e a URL
+baseada em HOSTNAME. O botão Copiar copia a aba selecionada; se a área de transferência
+estiver indisponível, o texto pode ser selecionado manualmente.
+
+A aba OpenCode contém um prompt para configurar o repositório existente e registrar
+um commit. As abas de terminal orientam instalação e exportação; não substituem
+app.json automaticamente. O runtime sugerido é editável e não altera o projeto ou o
+aplicativo. Configurações dinâmicas, políticas de runtime e projetos nativos manuais
+precisam ser adaptados ao build real. Um novo build instalado e uma atualização visível
+são necessários para comprovar a conexão. Nenhum token ou senha entra no prompt.
+
+## Excluir projeto
+Em **Configurações > Excluir projeto**, digite o slug exato e a senha atual.
+A operação remove permanentemente bundles/assets, histórico, credenciais, tokens,
+variáveis e dispositivos do projeto. Não remove o GitHub, outros projetos, o perfil
+administrativo ou a chave compartilhada de criptografia. Não há restauração pelo painel.
+Apps instalados deixam de receber atualizações desse projeto; a exclusão não desinstala
+nem apaga o conteúdo já armazenado no dispositivo. Reutilizar um slug faz os apps antigos
+continuarem apontando para esse endereço: use outro slug para um aplicativo diferente.
+
+Operações administrativas do mesmo projeto usam uma trava no volume para impedir
+publicação/configuração concorrente com a exclusão. Se o processo for interrompido
+abruptamente e deixar uma trava em updates/.admin/project-locks/SLUG, pare o serviço,
+confirme que não há operação em andamento e remova somente esse diretório vazio antes
+de reiniciar. Não remova travas durante operações ativas.
+
+Testes adicionais: node --test tests/projects.test.cjs.
+Em servidor de teste descartável: node tests/projects-http.cjs (porta 3100 e credenciais de teste).

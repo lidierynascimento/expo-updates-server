@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import path from "path";
 const auth = require("../../../common/admin-auth.cjs");
+const storage = require("../../../common/admin-storage.cjs");
 const settings = require("../../../common/admin-settings.cjs");
 export const config = { api: { bodyParser: { sizeLimit: "4mb" } } };
 export default async function handler(
@@ -16,20 +17,20 @@ export default async function handler(
     return res.status(403).json({ error: "Origem não autorizada." });
   try {
     const root = path.resolve("updates");
-    if (req.body?.action === "list")
-      return res.json({ rows: await settings.list(root, req.body.project) });
-    if (req.body?.action === "reveal")
-      return res.json(
-        await settings.reveal(root, req.body.project, req.body.id),
-      );
-    return res.json(await settings.mutate(root, req.body?.project, req.body));
+    return await storage.withProjectLock(root, req.body?.project, async () => {
+      if (req.body?.action === "list")
+        return res.json({ rows: await settings.list(root, req.body.project) });
+      if (req.body?.action === "reveal")
+        return res.json(
+          await settings.reveal(root, req.body.project, req.body.id),
+        );
+      return res.json(await settings.mutate(root, req.body?.project, req.body));
+    });
   } catch (error: any) {
-    return res
-      .status(error.code ? 500 : 400)
-      .json({
-        error: error.code
-          ? "Não foi possível acessar o armazenamento do projeto."
-          : error.message,
-      });
+    return res.status(error.code ? 500 : 400).json({
+      error: error.code
+        ? "Não foi possível acessar o armazenamento do projeto."
+        : error.message,
+    });
   }
 }

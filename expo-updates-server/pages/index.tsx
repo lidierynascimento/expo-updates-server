@@ -1,4 +1,7 @@
 import Head from "next/head";
+import Dialog from "../components/Dialog";
+import ProjectSettings from "../components/ProjectSettings";
+import styles from "../styles/Dashboard.module.css";
 import { useState } from "react";
 import type { GetServerSideProps } from "next";
 const auth = require("../common/admin-auth.cjs");
@@ -14,6 +17,7 @@ type Release = {
   valid: boolean;
 };
 type Props = {
+  section: string;
   projects: { name: string; slug: string }[];
   project: string;
   releases: Release[];
@@ -31,6 +35,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   const empty: Props = {
+    section: "overview",
     projects: [],
     project: "",
     releases: [],
@@ -122,6 +127,20 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
   releases.sort((a, b) => Number(b.version) - Number(a.version));
   return {
     props: {
+      section:
+        typeof query.section === "string" &&
+        [
+          "overview",
+          "updates",
+          "publish",
+          "credentials",
+          "tokens",
+          "devices",
+          "environment",
+          "general",
+        ].includes(query.section)
+          ? query.section
+          : "overview",
       releases,
       projects,
       project,
@@ -134,6 +153,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
 };
 
 export default function Dashboard({
+  section,
   projects,
   project,
   releases,
@@ -263,31 +283,53 @@ export default function Dashboard({
     }
   }
   const runtimes = new Set(releases.map((item) => item.runtime)).size;
+  const current = projects.find((item) => item.slug === project);
+  const link = (view: string, slug = project) =>
+    "/?section=" + view + (slug ? "&project=" + encodeURIComponent(slug) : "");
+  const titles: Record<string, string> = {
+    overview: project ? "Visão geral do projeto" : "Seus projetos",
+    updates: "Atualizações OTA",
+    publish: "Publicar atualização",
+    credentials: "Credenciais Android e iOS",
+    tokens: "Tokens de acesso",
+    devices: "Dispositivos Apple",
+    environment: "Variáveis de ambiente",
+    general: "Configurações do projeto",
+  };
+  const menu = [
+    ["overview", "Visão geral", "grid"],
+    ["updates", "Atualizações OTA", "refresh"],
+    ["publish", "Publicar atualização", "upload"],
+    ["credentials", "Credenciais Android e iOS", "key"],
+    ["tokens", "Tokens de acesso", "shield"],
+    ["devices", "Dispositivos Apple", "phone"],
+    ["environment", "Variáveis de ambiente", "code"],
+    ["general", "Configurações", "settings"],
+  ];
   return (
-    <div className="shell">
+    <div className={styles.app}>
       <Head>
-        <title>Expo OTA · Painel</title>
+        <title>{titles[section]} · Expo OTA</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
-      <header>
-        <div className="brand">
-          <span className="logo">⟨/⟩</span>
-          <div>
-            Expo OTA<small>VDigitals Lab</small>
-          </div>
-        </div>
-        <span className="badge">OTA · Self-hosted</span>
-      </header>
       {!authorized ? (
-        <main className="login">
-          <section className="panel">
-            <p className="eyebrow">VDIGITALS LAB</p>
-            <h1>Entrar no painel OTA</h1>
+        <main className={styles.login}>
+          <div className={styles.loginBrand}>
+            <Icon name="code" /> Expo OTA
+          </div>
+          <section className={styles.panel}>
+            <h1>Entre no seu painel</h1>
+            <p>Gerencie os aplicativos da VDigitals Lab.</p>
             {configured ? (
               <form onSubmit={login}>
                 <label>
                   Usuário
-                  <input name="username" autoComplete="username" required />
+                  <input
+                    name="username"
+                    autoComplete="username"
+                    required
+                    autoFocus
+                  />
                 </label>
                 <label>
                   Senha
@@ -298,751 +340,449 @@ export default function Dashboard({
                     required
                   />
                 </label>
-                <button disabled={busy}>{busy ? "Entrando…" : "Entrar"}</button>
+                {message && (
+                  <p role="alert" className={styles.alert}>
+                    {message}
+                  </p>
+                )}
+                <button className={styles.primary} disabled={busy}>
+                  {busy ? "Entrando…" : "Entrar"}
+                </button>
               </form>
             ) : (
               <p>
-                Defina DASHBOARD_USERNAME e DASHBOARD_PASSWORD no EasyPanel.
-              </p>
-            )}
-            {message && (
-              <p role="alert" className="warning">
-                {message}
+                Configure DASHBOARD_USERNAME e DASHBOARD_PASSWORD no EasyPanel.
               </p>
             )}
           </section>
         </main>
       ) : (
-        <main>
-          <div className="heading">
-            <div>
-              <p className="eyebrow">VISÃO GERAL</p>
-              <h1>Atualizações do aplicativo</h1>
-              <p>
-                Versões encontradas no armazenamento persistente do servidor.
-              </p>
-            </div>
-            <div className="actions">
-              <a
-                className="button"
-                href={
-                  project ? "/?project=" + encodeURIComponent(project) : "/"
-                }
-              >
-                Atualizar lista
-              </a>
-              <button className="secondary" onClick={logout}>
-                Sair
-              </button>
-            </div>
-          </div>
-          {message && (
-            <p role="alert" className="warning">
-              {message}
-            </p>
-          )}
-          <section className="projectbar">
-            <label>
-              Projeto
+        <div className={styles.workspace}>
+          <aside className={styles.sidebar}>
+            <a href="/" className={styles.brand}>
+              <span className={styles.brandIcon}>
+                <Icon name="code" />
+              </span>
+              <span>
+                Expo OTA<small>VDigitals Lab</small>
+              </span>
+            </a>
+            <div className={styles.projectSelect}>
+              <label htmlFor="project-select">PROJETO</label>
               <select
+                id="project-select"
                 value={project}
                 onChange={(event) => {
-                  window.location.href = event.target.value
-                    ? "/?project=" + encodeURIComponent(event.target.value)
-                    : "/";
+                  window.location.href = link("overview", event.target.value);
                 }}
               >
-                <option value="">Aplicativo legado / padrão</option>
+                <option value="">Todos os projetos</option>
                 {projects.map((item) => (
                   <option key={item.slug} value={item.slug}>
                     {item.name}
                   </option>
                 ))}
               </select>
-            </label>
-            <button onClick={() => setNewProject(!newProject)}>
-              + Novo projeto
-            </button>
-          </section>
-          {newProject && (
-            <section className="panel">
-              <h2>Novo projeto</h2>
-              <form onSubmit={createProject}>
-                <label>
-                  Nome do aplicativo
-                  <input
-                    name="name"
-                    maxLength={100}
-                    required
-                    placeholder="Aplicativo de passageiros"
-                  />
-                </label>
-                <label>
-                  Slug
-                  <input
-                    name="slug"
-                    pattern="[a-z0-9][a-z0-9-]{0,63}"
-                    required
-                    placeholder="passageiros"
-                  />
-                </label>
-                <button disabled={busy}>Criar projeto</button>
-              </form>
-            </section>
-          )}
-          <nav>
-            <a href="#publish">Publicar</a>
-            <a href="#history">Atualizações</a>
-            <a href="#connect">Configuração</a>
-          </nav>
-          <section id="publish" className="panel">
-            <h2>Publicar atualização</h2>
-            <p>
-              Selecione a pasta exportada do app, incluindo metadata.json e
-              expoConfig.json. Ao publicar, a versão passa a ser a mais recente
-              do runtime.
-            </p>
-            <form onSubmit={publish}>
-              <label>
-                Runtime do aplicativo
-                <input
-                  value={runtime}
-                  onChange={(event) => setRuntime(event.target.value)}
-                  placeholder="Ex.: 1.0.0"
-                  required
-                  pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,127}"
-                />
-              </label>
-              <label>
-                Pasta do export (até 32 MB)
-                <input
-                  type="file"
-                  multiple
-                  {...({ webkitdirectory: "", directory: "" } as any)}
-                  onChange={(event) =>
-                    setSelected(Array.from(event.target.files || []))
-                  }
-                />
-              </label>
-              <p>
-                {selected.length
-                  ? selected.length + " arquivos selecionados"
-                  : "Nenhum arquivo selecionado"}
-              </p>
-              <button disabled={busy || !selected.length}>
-                {busy ? "Processando…" : "Publicar atualização"}
+              <button
+                onClick={() => {
+                  setMessage("");
+                  setNewProject(true);
+                }}
+              >
+                <Icon name="plus" /> Novo projeto
               </button>
-            </form>
-          </section>
-          <section className="cards">
-            <article>
-              <span>Atualizações</span>
-              <strong>{releases.length}</strong>
-            </article>
-            <article>
-              <span>Runtimes</span>
-              <strong>{runtimes}</strong>
-            </article>
-            <article>
-              <span>Assinatura OTA</span>
-              <strong className="text">
-                {signed ? "Caminho configurado" : "Não configurada"}
-              </strong>
-            </article>
-          </section>
-          {scanError && (
-            <p className="warning">
-              Não foi possível ler todo o armazenamento. Confira as permissões
-              do volume /app/updates.
-            </p>
-          )}
-          <section id="history" className="panel">
-            <h2>Histórico de versões</h2>
-            {!releases.length ? (
-              <div className="empty">
-                <span>↥</span>
-                <h3>Nenhuma atualização publicada</h3>
-                <p>
-                  O servidor ainda não possui exports do aplicativo. As versões
-                  aparecerão aqui após a publicação no volume.
+            </div>
+            <nav aria-label="Navegação do projeto">
+              {menu.map(([view, label, icon], index) => (
+                <div key={view}>
+                  {index === 3 && (
+                    <p className={styles.navLabel}>CONFIGURAÇÕES DO PROJETO</p>
+                  )}
+                  <a
+                    href={link(view)}
+                    aria-current={section === view ? "page" : undefined}
+                    className={section === view ? styles.active : ""}
+                  >
+                    <Icon name={icon} />
+                    <span>{label}</span>
+                  </a>
+                </div>
+              ))}
+            </nav>
+            <div className={styles.account}>
+              <span className={styles.avatar}>VD</span>
+              <div>
+                <strong>Administrador</strong>
+                <small>Acesso ao servidor</small>
+              </div>
+              <button title="Sair" aria-label="Sair" onClick={logout}>
+                <Icon name="logout" />
+              </button>
+            </div>
+          </aside>
+          <div className={styles.content}>
+            <header className={styles.topbar}>
+              <div className={styles.breadcrumb}>
+                VDigitals Lab <span>/</span> {current?.name || "Projetos"}
+              </div>
+              <span className={styles.badge}>Servidor próprio</span>
+            </header>
+            <main className={styles.main}>
+              <div className={styles.pageHeading}>
+                <div>
+                  <p className={styles.eyebrow}>
+                    {project ? current?.slug : "WORKSPACE"}
+                  </p>
+                  <h1>{titles[section]}</h1>
+                </div>
+                <div className={styles.actions}>
+                  {section === "overview" && !project ? (
+                    <button
+                      className={styles.primary}
+                      onClick={() => {
+                        setMessage("");
+                        setNewProject(true);
+                      }}
+                    >
+                      <Icon name="plus" /> Novo projeto
+                    </button>
+                  ) : (
+                    <a className={styles.button} href={link(section)}>
+                      Atualizar
+                    </a>
+                  )}
+                </div>
+              </div>
+              {message && !newProject && (
+                <p role="alert" className={styles.alert}>
+                  {message}
                 </p>
-              </div>
-            ) : (
-              <div className="scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Versão</th>
-                      <th>Runtime</th>
-                      <th>Plataforma</th>
-                      <th>Estado dos arquivos</th>
-                      <th>Data do arquivo</th>
-                      <th>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {releases.map((item) => (
-                      <tr key={item.runtime + "/" + item.version}>
-                        <td>
-                          <code>{item.version}</code>
-                        </td>
-                        <td>{item.runtime}</td>
-                        <td>{item.platforms.join(" / ") || "—"}</td>
-                        <td>
-                          <span
-                            className={item.valid ? "state" : "state error"}
-                          >
-                            {item.rollback
-                              ? "Rollback para versão embarcada"
-                              : item.valid
-                                ? "Metadados disponíveis"
-                                : "Export incompleto"}
-                          </span>
-                        </td>
-                        <td>{item.date || "—"}</td>
-                        <td>
-                          <button
-                            className="secondary"
-                            disabled={busy}
-                            onClick={() => rollback(item.runtime)}
-                          >
-                            Voltar à versão instalada
-                          </button>
-                        </td>
-                      </tr>
+              )}
+              {scanError && (
+                <p className={styles.alert}>
+                  Não foi possível ler todas as atualizações. Confira o volume e
+                  suas permissões.
+                </p>
+              )}
+              {section === "overview" && !project && (
+                <>
+                  <p className={styles.subtitle}>
+                    Escolha um aplicativo para gerenciar atualizações e
+                    configurações.
+                  </p>
+                  <div className={styles.projectGrid}>
+                    {projects.map((item) => (
+                      <a
+                        className={styles.projectCard}
+                        key={item.slug}
+                        href={link("overview", item.slug)}
+                      >
+                        <span className={styles.projectAvatar}>
+                          {item.name.charAt(0).toUpperCase()}
+                        </span>
+                        <h2>{item.name}</h2>
+                        <p>{item.slug}</p>
+                        <span className={styles.cardFooter}>
+                          Abrir projeto <span>→</span>
+                        </span>
+                      </a>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-          <section id="connect" className="panel info">
-            <h2>Conectar o aplicativo</h2>
-            <p>Endereço de atualizações:</p>
-            <code>
-              {"https://expo.vdigitalslab.com/api/manifest" +
-                (project ? "?project=" + project : "")}
-            </code>
-            <p>
-              O runtime deve corresponder ao código nativo instalado no celular.
-              A lista de arquivos não comprova que uma atualização foi
-              instalada.
-            </p>
-            <p>
-              O botão de rollback volta à versão embarcada no aplicativo, para
-              todo o runtime, e requer protocolo Expo Updates 1. Builds
-              Android/iOS continuam fora deste painel.
-            </p>
-          </section>
-        </main>
+                    <button
+                      className={styles.newCard}
+                      onClick={() => {
+                        setMessage("");
+                        setNewProject(true);
+                      }}
+                    >
+                      <Icon name="plus" />
+                      <strong>Criar projeto</strong>
+                      <span>Organize um novo aplicativo</span>
+                    </button>
+                  </div>
+                  <details className={styles.legacy}>
+                    <summary>Aplicativo legado / padrão</summary>
+                    <p>
+                      Atualizações anteriores à criação de projetos continuam
+                      disponíveis.
+                    </p>
+                    <a href={link("updates", "")}>
+                      Consultar atualizações legadas →
+                    </a>
+                  </details>
+                </>
+              )}
+              {section === "overview" && project && (
+                <>
+                  <div className={styles.projectHero}>
+                    <span className={styles.projectAvatar}>
+                      {current?.name.charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <h2>{current?.name}</h2>
+                      <p>{project}</p>
+                    </div>
+                    <a className={styles.primary} href={link("publish")}>
+                      Publicar atualização
+                    </a>
+                  </div>
+                  <div className={styles.stats}>
+                    <article>
+                      <span>Atualizações</span>
+                      <strong>{releases.length}</strong>
+                    </article>
+                    <article>
+                      <span>Runtimes</span>
+                      <strong>{runtimes}</strong>
+                    </article>
+                    <article>
+                      <span>Assinatura OTA</span>
+                      <strong className={styles.smallStat}>
+                        {signed ? "Caminho configurado" : "Não configurada"}
+                      </strong>
+                    </article>
+                  </div>
+                  <section className={styles.panel}>
+                    <h2>Configurar o aplicativo</h2>
+                    <p>
+                      Use este endereço em updates.url e gere um novo build do
+                      aplicativo.
+                    </p>
+                    <code className={styles.endpoint}>
+                      {"https://expo.vdigitalslab.com/api/manifest?project=" +
+                        project}
+                    </code>
+                    <div className={styles.actions}>
+                      <a href={link("updates")}>Histórico de atualizações →</a>
+                      <a href={link("general")}>Configurações →</a>
+                    </div>
+                  </section>
+                </>
+              )}
+              {["credentials", "tokens", "devices", "environment"].includes(
+                section,
+              ) && (
+                <ProjectSettings
+                  key={project + section}
+                  project={project}
+                  kind={section}
+                  onRequestProject={() => {
+                    setMessage("");
+                    setNewProject(true);
+                  }}
+                />
+              )}
+              {section === "publish" && (
+                <section className={styles.panel}>
+                  <h2>Nova atualização OTA</h2>
+                  <p>
+                    {project ? current?.name : "Aplicativo legado / padrão"} · A
+                    publicação será entregue aos clientes do runtime informado.
+                  </p>
+                  <form onSubmit={publish} className={styles.publishForm}>
+                    <label>
+                      Runtime
+                      <input
+                        value={runtime}
+                        onChange={(event) => setRuntime(event.target.value)}
+                        required
+                        pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,127}"
+                        placeholder="Ex.: 1.0.0"
+                      />
+                    </label>
+                    <label>
+                      Pasta do export
+                      <input
+                        type="file"
+                        multiple
+                        {...({ webkitdirectory: "", directory: "" } as any)}
+                        onChange={(event) =>
+                          setSelected(Array.from(event.target.files || []))
+                        }
+                      />
+                    </label>
+                    <p className={styles.muted}>
+                      {selected.length} arquivos selecionados. Inclua
+                      metadata.json e expoConfig.json. Até 32 MB.
+                    </p>
+                    <button
+                      className={styles.primary}
+                      disabled={busy || !selected.length}
+                    >
+                      {busy ? "Publicando…" : "Publicar atualização"}
+                    </button>
+                  </form>
+                </section>
+              )}
+              {section === "updates" && (
+                <section className={styles.panel}>
+                  <div className={styles.sectionHeading}>
+                    <div>
+                      <h2>Histórico de versões</h2>
+                      <p>
+                        {releases.length} atualizações · {runtimes} runtimes
+                      </p>
+                    </div>
+                    <a className={styles.primary} href={link("publish")}>
+                      Publicar
+                    </a>
+                  </div>
+                  {!releases.length ? (
+                    <div className={styles.empty}>
+                      <Icon name="upload" />
+                      <h3>Nenhuma atualização publicada</h3>
+                      <p>Publique o primeiro export para começar.</p>
+                    </div>
+                  ) : (
+                    <div className={styles.tableWrap}>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Versão</th>
+                            <th>Runtime</th>
+                            <th>Plataformas</th>
+                            <th>Estado</th>
+                            <th>Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {releases.map((item) => (
+                            <tr key={item.runtime + "/" + item.version}>
+                              <td>
+                                <code>{item.version}</code>
+                              </td>
+                              <td>{item.runtime}</td>
+                              <td>{item.platforms.join(" / ") || "—"}</td>
+                              <td>
+                                {item.rollback
+                                  ? "Voltar à versão embarcada"
+                                  : item.valid
+                                    ? "Metadados disponíveis"
+                                    : "Export incompleto"}
+                              </td>
+                              <td>
+                                <button
+                                  disabled={busy}
+                                  onClick={() => rollback(item.runtime)}
+                                >
+                                  Voltar à versão instalada
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <p className={styles.muted}>
+                    O rollback retorna ao bundle embarcado e requer protocolo
+                    Expo Updates 1.
+                  </p>
+                </section>
+              )}
+              {section === "general" && (
+                <section className={styles.panel}>
+                  <h2>{current?.name || "Aplicativo legado / padrão"}</h2>
+                  <dl className={styles.definition}>
+                    <dt>Slug</dt>
+                    <dd>{project || "Legado"}</dd>
+                    <dt>Servidor de atualizações</dt>
+                    <dd>
+                      <code>
+                        {"https://expo.vdigitalslab.com/api/manifest" +
+                          (project ? "?project=" + project : "")}
+                      </code>
+                    </dd>
+                    <dt>Publicação automatizada</dt>
+                    <dd>
+                      Crie um token do projeto e use Authorization: Bearer TOKEN
+                      em POST /api/admin/releases. A permissão é somente
+                      publicar.
+                    </dd>
+                  </dl>
+                  <p>
+                    O cadastro de variáveis, credenciais e dispositivos é
+                    mantido pelo painel. Builds, registro de dispositivos na
+                    Apple e configuração de workflows do GitHub Actions
+                    continuam separados.
+                  </p>
+                </section>
+              )}
+            </main>
+          </div>
+        </div>
       )}
-      <style jsx>{`
-        select {
-          display: block;
-          margin-top: 8px;
-          padding: 12px;
-          border: 1px solid #ccd4df;
-          border-radius: 8px;
-          min-width: 250px;
-          background: white;
-        }
-        .projectbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-        }
-        .projectbar label {
-          margin: 0;
-        }
-        form {
-          max-width: 660px;
-        }
-        label {
-          display: block;
-          font-size: 14px;
-          margin: 18px 0;
-        }
-        input {
-          display: block;
-          width: 100%;
-          padding: 12px;
-          border: 1px solid #ccd4df;
-          border-radius: 8px;
-          margin-top: 8px;
-          box-sizing: border-box;
-          background: #fff;
-          color: #17233b;
-        }
-        button {
-          cursor: pointer;
-          border: 0;
-          background: #173d35;
-          color: white;
-          padding: 12px 18px;
-          border-radius: 8px;
-          font-size: 14px;
-        }
-        button:disabled {
-          opacity: 0.5;
-          cursor: wait;
-        }
-        .secondary {
-          background: #edf1f5;
-          color: #24354b;
-        }
-        .actions {
-          display: flex;
-          gap: 10px;
-        }
-        .login {
-          max-width: 450px;
-          margin: 6vh auto;
-        }
-        nav {
-          display: flex;
-          gap: 24px;
-          margin-top: 24px;
-        }
-        nav a {
-          color: #236147;
-          text-decoration: none;
-          font-size: 14px;
-        }
-        .shell {
-          min-height: 100vh;
-          background: #f5f7fa;
-          color: #17233b;
-          font-family: Arial, sans-serif;
-        }
-        header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          background: white;
-          border-bottom: 1px solid #e3e8ef;
-          padding: 24px 6%;
-        }
-        .brand {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-weight: 700;
-          font-size: 22px;
-        }
-        .brand small {
-          display: block;
-          font-size: 12px;
-          color: #748096;
-          margin-top: 4px;
-          font-weight: 400;
-        }
-        .logo {
-          background: #173d35;
-          color: #fff;
-          padding: 8px 12px;
-          border-radius: 12px;
-        }
-        .badge,
-        .state {
-          background: #e7f3ed;
-          color: #236147;
-          border-radius: 20px;
-          padding: 7px 12px;
-          font-size: 12px;
-        }
-        main {
-          max-width: 1200px;
-          margin: auto;
-          padding: 40px 24px;
-        }
-        .heading {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 20px;
-        }
-        h1 {
-          font-size: 32px;
-          margin: 8px 0 12px;
-          letter-spacing: -1px;
-        }
-        p {
-          color: #68768d;
-          line-height: 1.7;
-        }
-        .eyebrow {
-          font-size: 11px;
-          letter-spacing: 2px;
-          color: #367c64;
-        }
-        .button {
-          background: #173d35;
-          color: white;
-          padding: 12px 18px;
-          border-radius: 8px;
-          text-decoration: none;
-          white-space: nowrap;
-        }
-        .cards {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 18px;
-          margin: 28px 0;
-        }
-        .cards article,
-        .panel {
-          background: white;
-          border: 1px solid #e3e8ef;
-          border-radius: 14px;
-          padding: 24px;
-        }
-        .cards span {
-          color: #748096;
-          font-size: 13px;
-        }
-        .cards strong {
-          display: block;
-          margin-top: 16px;
-          font-size: 36px;
-        }
-        .cards .text {
-          font-size: 18px;
-        }
-        .panel {
-          margin: 22px 0;
-        }
-        h2 {
-          font-size: 18px;
-          margin: 0 0 20px;
-        }
-        .empty {
-          text-align: center;
-          padding: 40px 15px;
-        }
-        .empty > span {
-          font-size: 35px;
-          color: #367c64;
-        }
-        .empty p {
-          max-width: 550px;
-          margin: 0 auto;
-        }
-        .scroll {
-          overflow-x: auto;
-        }
-        table {
-          border-collapse: collapse;
-          width: 100%;
-          text-align: left;
-          font-size: 13px;
-        }
-        th {
-          color: #748096;
-          font-weight: 500;
-        }
-        td,
-        th {
-          padding: 16px 12px;
-          border-bottom: 1px solid #edf0f4;
-        }
-        code {
-          font-size: 13px;
-          overflow-wrap: anywhere;
-        }
-        .error,
-        .warning {
-          background: #fff0df;
-          color: #955d0b;
-        }
-        .warning {
-          padding: 16px;
-          border-radius: 8px;
-        }
-        .info p {
-          font-size: 14px;
-        }
-        @media (max-width: 700px) {
-          .cards {
-            grid-template-columns: 1fr;
-          }
-          .heading {
-            align-items: flex-start;
-            flex-direction: column;
-          }
-          h1 {
-            font-size: 26px;
-          }
-          header {
-            padding: 20px;
-          }
-          .badge {
-            display: none;
-          }
-        }
-        .shell {
-          background: #ffffff;
-          color: #1f2328;
-          font-family:
-            -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
-        header {
-          padding: 14px 32px;
-          background: #f6f8fa;
-          border-color: #d1d9e0;
-        }
-        .brand {
-          font-size: 17px;
-          gap: 10px;
-        }
-        .brand small {
-          font-size: 11px;
-          color: #59636e;
-        }
-        .logo {
-          background: #24292f;
-          border-radius: 9px;
-          padding: 8px;
-          font-size: 14px;
-        }
-        .badge {
-          background: #ffffff;
-          color: #59636e;
-          border: 1px solid #d1d9e0;
-          padding: 4px 9px;
-        }
-        main {
-          max-width: 1240px;
-          padding: 24px 28px;
-        }
-        h1 {
-          font-size: 24px;
-          font-weight: 600;
-          letter-spacing: -0.5px;
-          margin: 5px 0;
-        }
-        h2 {
-          font-size: 15px;
-          font-weight: 600;
-          margin-bottom: 12px;
-        }
-        h3 {
-          font-size: 16px;
-          font-weight: 600;
-        }
-        p {
-          color: #59636e;
-          font-size: 13px;
-          line-height: 1.5;
-          margin: 8px 0;
-        }
-        .eyebrow {
-          color: #59636e;
-          font-size: 10px;
-          letter-spacing: 1.5px;
-        }
-        .button,
-        button {
-          background: #1f883d;
-          border: 1px solid #1a7f37;
-          padding: 7px 12px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-        }
-        .button {
-          background: #f6f8fa;
-          border-color: #d1d9e0;
-          color: #25292e;
-        }
-        .secondary {
-          background: #f6f8fa;
-          border-color: #d1d9e0;
-          color: #25292e;
-        }
-        button:hover,
-        .button:hover {
-          filter: brightness(0.97);
-        }
-        input:focus,
-        select:focus {
-          outline: 2px solid #0969da;
-          outline-offset: -1px;
-        }
-        .projectbar {
-          border-bottom: 1px solid #d1d9e0;
-          padding: 14px 0;
-          margin-top: 8px;
-        }
-        .projectbar label {
-          font-size: 11px;
-          color: #59636e;
-        }
-        select,
-        input {
-          border-color: #d1d9e0;
-          border-radius: 6px;
-          padding: 8px 10px;
-          font-size: 13px;
-          margin-top: 5px;
-        }
-        select {
-          min-width: 220px;
-        }
-        nav {
-          margin: 0;
-          gap: 8px;
-          border-bottom: 1px solid #d1d9e0;
-          padding-top: 6px;
-        }
-        nav a {
-          color: #1f2328;
-          font-size: 13px;
-          padding: 12px 14px;
-          border-bottom: 2px solid transparent;
-        }
-        nav a:hover {
-          border-bottom-color: #fd8c73;
-          background: #f6f8fa;
-        }
-        .cards {
-          margin: 16px 0;
-          gap: 12px;
-        }
-        .cards article,
-        .panel {
-          border-color: #d1d9e0;
-          border-radius: 8px;
-          padding: 16px;
-          box-shadow: 0 1px 0 rgba(31, 35, 40, 0.03);
-        }
-        .cards span {
-          font-size: 12px;
-          color: #59636e;
-        }
-        .cards strong {
-          margin-top: 8px;
-          font-size: 26px;
-          font-weight: 600;
-        }
-        .cards .text {
-          font-size: 15px;
-        }
-        .panel {
-          margin: 16px 0;
-        }
-        form {
-          max-width: 100%;
-        }
-        #publish form {
-          display: grid;
-          grid-template-columns: 180px 1fr auto;
-          align-items: end;
-          gap: 12px;
-        }
-        #publish label {
-          margin: 8px 0;
-        }
-        #publish form p {
-          grid-column: 1 / 3;
-          margin: 0;
-          font-size: 11px;
-        }
-        #publish form button {
-          grid-column: 3;
-          grid-row: 1 / 3;
-          align-self: center;
-        }
-        label {
-          font-size: 12px;
-          margin: 14px 0;
-        }
-        .empty {
-          padding: 26px 15px;
-        }
-        .empty > span {
-          color: #0969da;
-          font-size: 26px;
-        }
-        .empty p {
-          max-width: 480px;
-        }
-        th {
-          background: #f6f8fa;
-          color: #59636e;
-          font-size: 11px;
-        }
-        td,
-        th {
-          padding: 10px 12px;
-          border-color: #d1d9e0;
-        }
-        tbody tr:hover {
-          background: #f6f8fa;
-        }
-        .state {
-          padding: 3px 8px;
-          font-size: 11px;
-          border: 1px solid #b4dfc0;
-          background: #dafbe1;
-          color: #1a7f37;
-        }
-        .state.error {
-          border-color: #eac54f;
-          background: #fff8c5;
-          color: #7d4e00;
-        }
-        .info {
-          background: #f6f8fa;
-        }
-        .info p {
-          font-size: 12px;
-        }
-        .info code {
-          color: #0969da;
-          font-size: 12px;
-        }
-        .login {
-          max-width: 380px;
-          margin: 6vh auto;
-        }
-        .login .panel {
-          padding: 24px;
-        }
-        .login button {
-          width: 100%;
-        }
-        @media (max-width: 760px) {
-          main {
-            padding: 18px 14px;
-          }
-          header {
-            padding: 14px 18px;
-          }
-          .projectbar {
-            align-items: end;
-          }
-          select {
-            min-width: 0;
-            max-width: 210px;
-          }
-          .cards {
-            grid-template-columns: 1fr;
-          }
-          #publish form {
-            display: block;
-          }
-          #publish form button {
-            margin-top: 12px;
-          }
-          nav a {
-            padding: 10px;
-          }
-          h1 {
-            font-size: 22px;
-          }
-        }
-      `}</style>
+      {authorized && newProject && (
+        <Dialog title="Novo projeto" onClose={() => setNewProject(false)}>
+          <p>
+            Crie um espaço separado para as atualizações e configurações do
+            aplicativo.
+          </p>
+          <form onSubmit={createProject}>
+            <label>
+              Nome do aplicativo
+              <input
+                name="name"
+                maxLength={100}
+                required
+                placeholder="Aplicativo de passageiros"
+                autoFocus
+              />
+            </label>
+            <label>
+              Slug
+              <input
+                name="slug"
+                required
+                pattern="[a-z0-9][a-z0-9-]{0,63}"
+                placeholder="passageiros"
+              />
+              <small>Letras minúsculas, números e hífens.</small>
+            </label>
+            {message && (
+              <p role="alert" className={styles.alert}>
+                {message}
+              </p>
+            )}
+            <div className={styles.dialogFooter}>
+              <button type="button" onClick={() => setNewProject(false)}>
+                Cancelar
+              </button>
+              <button className={styles.primary} disabled={busy}>
+                {busy ? "Criando…" : "Criar projeto"}
+              </button>
+            </div>
+          </form>
+        </Dialog>
+      )}
     </div>
+  );
+}
+function Icon({ name }: { name: string }) {
+  const icons: Record<string, string> = {
+    grid: "M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h6v6h-6z",
+    key: "M14 4a6 6 0 1 1-4 10L3 21H1v-4l7-7a6 6 0 0 1 6-6z",
+    phone: "M7 2h10v20H7zM10 18h4",
+    shield: "M12 2l8 4v6c0 5-8 10-8 10S4 17 4 12V6z",
+    code: "M8 6l-6 6 6 6M16 6l6 6-6 6M14 3l-4 18",
+    upload: "M12 16V3M6 9l6-6 6 6M3 16v5h18v-5",
+    refresh: "M20 7A9 9 0 1 0 21 15M20 2v6h-6",
+    plus: "M12 4v16M4 12h16",
+    logout: "M9 3H3v18h6M8 12h13M16 7l5 5-5 5",
+    settings: "M4 7h16M4 17h16M8 4v6M16 14v6",
+  };
+  return (
+    <svg
+      aria-hidden="true"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={icons[name] || icons.grid} />
+    </svg>
   );
 }

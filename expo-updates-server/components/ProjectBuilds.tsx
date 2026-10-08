@@ -1,24 +1,34 @@
 import { useEffect, useState } from "react";
+import Dialog from "./Dialog";
 import s from "../styles/Dashboard.module.css";
 export default function ProjectBuilds({ project }: { project: string }) {
   const [repository, setRepository] = useState("");
   const [saved, setSaved] = useState("");
+  const [connected, setConnected] = useState(false);
+  const [runs, setRuns] = useState<any[]>([]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(true);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/admin/builds", {
+  const [open, setOpen] = useState(false);
+  const [downloads, setDownloads] = useState<Record<string, any[]>>({});
+  async function request(payload: any, signal?: AbortSignal) {
+    const res = await fetch("/api/admin/builds", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "get", project }),
-      signal: controller.signal,
-    })
-      .then(async (res) => {
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.error);
+      body: JSON.stringify({ ...payload, project }),
+      signal,
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error);
+    return body;
+  }
+  useEffect(() => {
+    const controller = new AbortController();
+    request({ action: "get" }, controller.signal)
+      .then((body) => {
         if (!controller.signal.aborted) {
           setRepository(body.repository);
           setSaved(body.repository);
+          setConnected(body.connected);
           setBusy(false);
         }
       })
@@ -30,110 +40,251 @@ export default function ProjectBuilds({ project }: { project: string }) {
       });
     return () => controller.abort();
   }, [project]);
+  useEffect(() => {
+    if (!connected || !saved) return;
+    let active = true;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      try {
+        const body = await request({ action: "runs" }, controller.signal);
+        if (active) setRuns(body.runs);
+      } catch (error: any) {
+        if (active) setMessage(error.message);
+      } finally {
+        if (active) timer = setTimeout(poll, 15000);
+      }
+    }
+    void poll();
+    return () => {
+      active = false;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [project, connected, saved]);
   async function save(event: any) {
     event.preventDefault();
     setBusy(true);
-    setMessage("");
     try {
-      const res = await fetch("/api/admin/builds", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "save",
-          project,
-          repository: repository.trim(),
-        }),
+      const body = await request({
+        action: "save",
+        repository: repository.trim(),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error);
       setSaved(body.repository);
-      setMessage("Repositório salvo. Abra o GitHub para executar o workflow.");
-    } catch (error: any) {
-      setMessage(error.message);
+      setConnected(body.connected);
+      setRuns([]);
+      setDownloads({});
+      setMessage("Repositório salvo.");
+    } catch (e: any) {
+      setMessage(e.message);
     } finally {
       setBusy(false);
     }
   }
-  const url = saved
-    ? "https://github.com/" + saved + "/actions/workflows/android-apk.yml"
-    : "";
+  async function start(event: any) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    const data = new FormData(event.currentTarget);
+    try {
+      await request({
+        action: "dispatch",
+        ref: data.get("ref"),
+        key: data.get("key"),
+      });
+      setOpen(false);
+      setMessage(
+        "Solicitação enviada ao GitHub. O build aparecerá abaixo em instantes.",
+      );
+      const body = await request({ action: "runs" });
+      setRuns(body.runs);
+    } catch (e: any) {
+      setMessage(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function files(id: number) {
+    setBusy(true);
+    try {
+      const body = await request({ action: "artifacts", run: id });
+      setDownloads((old) => ({ ...old, [id]: body.artifacts }));
+    } catch (e: any) {
+      setMessage(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const labels: Record<string, string> = {
+    queued: "Na fila",
+    in_progress: "Compilando",
+    waiting: "Aguardando",
+    pending: "Pendente",
+    requested: "Solicitado",
+    success: "Concluído",
+    failure: "Falhou",
+    cancelled: "Cancelado",
+    timed_out: "Tempo esgotado",
+    action_required: "Ação necessária",
+  };
   return (
     <>
       <section className={s.panel}>
-        <h2>APK para download</h2>
-        <p>
-          O GitHub Actions compila o Android na nuvem. Nesta primeira versão, a
-          execução, os logs e o download ficam no GitHub.
-        </p>
+        <div className={s.sectionHeading}>
+          <div>
+            <h2>Gerar APK</h2>
+            <p>Android · compilação no GitHub Actions</p>
+          </div>
+          <button
+            className={s.primary}
+            disabled={busy || !connected || !saved}
+            onClick={() => {
+              setMessage("");
+              setOpen(true);
+            }}
+          >
+            Gerar APK
+          </button>
+        </div>
+        {!connected && (
+          <p className={s.alert}>
+            Conecte o GitHub em <a href="/?section=integrations">Integrações</a>{" "}
+            e salve um repositório autorizado para gerar o APK neste painel.
+          </p>
+        )}
         <form onSubmit={save}>
           <label>
-            Repositório GitHub
+            Repositório deste aplicativo
             <input
               value={repository}
               onChange={(e) => setRepository(e.target.value)}
-              placeholder="lidierynascimento/app-mobi-urban-passenger"
-              maxLength={140}
               required
+              maxLength={140}
+              placeholder="lidierynascimento/app-mobi-urban-passenger"
             />
           </label>
           <button disabled={busy}>Salvar repositório</button>
         </form>
-        {message && <p role="status">{message}</p>}
-        {url && (
-          <div className={s.actions} style={{ marginTop: 20 }}>
-            <a
-              className={s.primary}
-              href={url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Gerar APK no GitHub ↗
-            </a>
-            <a className={s.button} href={url} target="_blank" rel="noreferrer">
-              Ver execuções e downloads ↗
-            </a>
-          </div>
+        {message && (
+          <p role="status" className={s.alert}>
+            {message}
+          </p>
         )}
-        <ol className={s.buildSteps}>
-          <li>
-            Abra o workflow <strong>Android APK · vDeploy</strong> e clique em{" "}
-            <strong>Run workflow</strong>.
-          </li>
-          <li>
-            Selecione a branch com a integração OTA e informe a chave publicável
-            do Clerk, se ainda não estiver nas Variables do GitHub.
-          </li>
-          <li>
-            Aguarde a execução terminar com sucesso. Abra o resumo e clique em{" "}
-            <strong>Baixar APK (ZIP)</strong>, ou na seção{" "}
-            <strong>Artifacts</strong>.
-          </li>
-          <li>
-            Extraia o ZIP e instale o APK no Android. O download exige login no
-            GitHub e acesso ao repositório.
-          </li>
-        </ol>
         <p>
-          O workflow android-apk.yml precisa existir no repositório. Salvar o
-          vínculo aqui não instala o workflow. Downloads ficam disponíveis por
-          14 dias. Este é um APK de teste; a assinatura para a loja será
-          configurada separadamente.
+          APK de teste. As credenciais Android armazenadas no painel ainda não
+          são enviadas ao workflow; ele usa a assinatura configurada no
+          repositório.
         </p>
       </section>
       <section className={s.panel}>
-        <h2>iOS sem Mac próprio</h2>
+        <h2>Builds recentes</h2>
         <p>
-          Podemos compilar usando um executor macOS do GitHub Actions, com Xcode
-          na nuvem. Para instalar no iPhone via TestFlight, será necessário
-          Apple Developer Program, App Store Connect e assinatura configurada.
+          Últimas 10 execuções manuais de android-apk.yml deste repositório.
+          Atualização a cada 15 segundos.
         </p>
+        {!runs.length ? (
+          <p>
+            {connected
+              ? "Nenhum build manual listado."
+              : "Conecte o GitHub para consultar os builds."}
+          </p>
+        ) : (
+          <div className={s.tableWrap}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Build / branch</th>
+                  <th>Status</th>
+                  <th>Download</th>
+                </tr>
+              </thead>
+              <tbody>
+                {runs.map((run) => (
+                  <tr key={run.id}>
+                    <td>
+                      #{run.number} · {run.branch}
+                      <small style={{ display: "block" }}>
+                        {run.sha?.slice(0, 7)}
+                      </small>
+                    </td>
+                    <td>
+                      {labels[run.conclusion || run.status] ||
+                        run.conclusion ||
+                        run.status}
+                    </td>
+                    <td>
+                      {run.conclusion === "success" && (
+                        <button disabled={busy} onClick={() => files(run.id)}>
+                          Ver downloads
+                        </button>
+                      )}
+                      {downloads[run.id]?.map((file) =>
+                        file.expired ? (
+                          <span key={file.id}>Download expirado</span>
+                        ) : (
+                          <a
+                            key={file.id}
+                            className={s.button}
+                            href={
+                              "/api/admin/builds?project=" +
+                              encodeURIComponent(project) +
+                              "&run=" +
+                              run.id +
+                              "&artifact=" +
+                              file.id
+                            }
+                          >
+                            Baixar APK (ZIP)
+                          </a>
+                        ),
+                      )}
+                      {downloads[run.id]?.length === 0 && (
+                        <span>Nenhum arquivo disponível.</span>
+                      )}{" "}
+                      <a href={run.url} target="_blank" rel="noreferrer">
+                        Logs ↗
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         <p>
-          A integração iOS ainda não está ativa. O IPA precisa de assinatura e
-          distribuição compatíveis; o download sozinho não instala o app no
-          iPhone. O uso de macOS pode consumir a franquia ou gerar cobrança no
-          GitHub.
+          Extraia o ZIP e instale o APK no Android. Os arquivos podem expirar
+          após 14 dias. O processamento pode consumir a franquia de Actions da
+          sua conta.
         </p>
       </section>
+      {open && (
+        <Dialog title="Gerar APK Android" onClose={() => setOpen(false)}>
+          <form onSubmit={start}>
+            <label>
+              Branch ou tag
+              <input name="ref" defaultValue="main" required maxLength={200} />
+            </label>
+            <label>
+              Chave publicável Clerk (opcional)
+              <input
+                name="key"
+                placeholder="pk_test_…"
+                autoComplete="off"
+                maxLength={520}
+              />
+            </label>
+            <p>
+              Deixe vazio se EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY já estiver nas
+              Variables do GitHub. Escolha a branch que recebeu a integração OTA
+              do OpenCode.
+            </p>
+            {message && <p role="alert">{message}</p>}
+            <button disabled={busy} className={s.primary}>
+              {busy ? "Enviando…" : "Iniciar build"}
+            </button>
+          </form>
+        </Dialog>
+      )}
     </>
   );
 }

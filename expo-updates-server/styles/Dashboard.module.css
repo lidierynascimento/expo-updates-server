@@ -849,3 +849,19 @@
 .buildSteps li {
   padding: 5px 0;
 }
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.app .cardTitle {
+  color: #1f2328;
+}
+.app .cardFooter {
+  color: #59636e;
+}
+.sidebar .navLabel {
+  margin-top: 18px;
+}

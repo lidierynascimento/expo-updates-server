@@ -1,4 +1,5 @@
 import Head from "next/head";
+import GithubIntegration from "../components/GithubIntegration";
 import ProjectBuilds from "../components/ProjectBuilds";
 import ProjectIcon, { ProjectAvatar } from "../components/ProjectIcon";
 import ConnectProject from "../components/ConnectProject";
@@ -24,6 +25,7 @@ type Release = {
   valid: boolean;
 };
 type Props = {
+  legacy: boolean;
   serverUrl: string;
   profile: Profile | null;
   notice: string;
@@ -46,6 +48,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   const empty: Props = {
     serverUrl: process.env.HOSTNAME || "https://expo.vdigitalslab.com",
+    legacy: false,
     profile: null,
     notice:
       query.signedout === "1"
@@ -91,6 +94,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
     projects.some((item) => item.slug === query.project)
       ? query.project
       : "";
+  const legacy = !project && query.legacy === "1";
   const root = project ? path.join(base, "projects", project) : base;
   try {
     const runtimes = await fs.readdir(root, { withFileTypes: true });
@@ -147,22 +151,31 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
   releases.sort((a, b) => Number(b.version) - Number(a.version));
   return {
     props: {
+      legacy,
       section:
-        typeof query.section === "string" &&
-        [
-          "overview",
-          "updates",
-          "publish",
-          "builds",
-          "credentials",
-          "tokens",
-          "devices",
-          "environment",
-          "general",
-          "account",
-        ].includes(query.section)
-          ? query.section
-          : "overview",
+        !project &&
+        !legacy &&
+        !["overview", "account", "integrations"].includes(String(query.section))
+          ? "overview"
+          : typeof query.section === "string" &&
+              [
+                "overview",
+                "updates",
+                "publish",
+                "builds",
+                "credentials",
+                "tokens",
+                "devices",
+                "environment",
+                "general",
+                "account",
+                "integrations",
+                "android-credentials",
+                "ios-credentials",
+                "ios-builds",
+              ].includes(query.section)
+            ? query.section
+            : "overview",
       serverUrl: process.env.HOSTNAME || "https://expo.vdigitalslab.com",
       profile: account.profile(),
       notice:
@@ -183,6 +196,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
 };
 
 export default function Dashboard({
+  legacy,
   serverUrl,
   profile,
   notice,
@@ -318,12 +332,22 @@ export default function Dashboard({
   const runtimes = new Set(releases.map((item) => item.runtime)).size;
   const current = projects.find((item) => item.slug === project);
   const link = (view: string, slug = project) =>
-    "/?section=" + view + (slug ? "&project=" + encodeURIComponent(slug) : "");
+    "/?section=" +
+    view +
+    (slug ? "&project=" + encodeURIComponent(slug) : legacy ? "&legacy=1" : "");
   const titles: Record<string, string> = {
-    overview: project ? "Visão geral do projeto" : "Seus projetos",
+    overview: project
+      ? "Visão geral do projeto"
+      : legacy
+        ? "Aplicativo legado"
+        : "Seus projetos",
     updates: "Atualizações OTA",
     publish: "Publicar atualização",
-    builds: "Builds e downloads",
+    builds: "Android · APK e builds",
+    "android-credentials": "Android · Credenciais",
+    "ios-credentials": "iOS · Credenciais",
+    "ios-builds": "iOS · Builds e TestFlight",
+    integrations: "Integrações do servidor",
     credentials: "Credenciais Android e iOS",
     tokens: "Tokens de acesso",
     devices: "Dispositivos Apple",
@@ -331,17 +355,51 @@ export default function Dashboard({
     general: "Configurações do projeto",
     account: "Minha conta",
   };
-  const menu = [
-    ["overview", "Visão geral", "grid"],
-    ["updates", "Atualizações OTA", "refresh"],
-    ["publish", "Publicar atualização", "upload"],
-    ["builds", "Builds e downloads", "phone"],
-    ["credentials", "Credenciais Android e iOS", "key"],
-    ["tokens", "Tokens de acesso", "shield"],
-    ["devices", "Dispositivos Apple", "phone"],
-    ["environment", "Variáveis de ambiente", "code"],
-    ["general", "Configurações", "settings"],
-  ];
+  const groups = project
+    ? [
+        {
+          label: "PROJETO",
+          items: [
+            ["overview", "Visão geral", "grid"],
+            ["updates", "Atualizações OTA", "refresh"],
+            ["publish", "Publicar OTA", "upload"],
+          ],
+        },
+        {
+          label: "ANDROID",
+          items: [
+            ["builds", "Gerar APK e builds", "phone"],
+            ["android-credentials", "Credenciais Android", "key"],
+          ],
+        },
+        {
+          label: "iOS",
+          items: [
+            ["ios-builds", "Builds e TestFlight", "phone"],
+            ["ios-credentials", "Credenciais iOS", "key"],
+            ["devices", "Dispositivos Apple", "phone"],
+          ],
+        },
+        {
+          label: "CONFIGURAÇÕES DO APP",
+          items: [
+            ["tokens", "Tokens OTA", "shield"],
+            ["environment", "Variáveis de ambiente", "code"],
+            ["general", "Configurações", "settings"],
+          ],
+        },
+      ]
+    : legacy
+      ? [
+          {
+            label: "APLICATIVO LEGADO",
+            items: [
+              ["updates", "Atualizações OTA", "refresh"],
+              ["publish", "Publicar OTA", "upload"],
+            ],
+          },
+        ]
+      : [];
   return (
     <div className={styles.app}>
       <Head>
@@ -409,12 +467,19 @@ export default function Dashboard({
               <label htmlFor="project-select">PROJETO</label>
               <select
                 id="project-select"
-                value={project}
+                value={legacy ? "__legacy" : project}
                 onChange={(event) => {
-                  window.location.href = link("overview", event.target.value);
+                  window.location.href =
+                    event.target.value === "__legacy"
+                      ? "/?section=updates&legacy=1"
+                      : "/?section=overview" +
+                        (event.target.value
+                          ? "&project=" + encodeURIComponent(event.target.value)
+                          : "");
                 }}
               >
                 <option value="">Todos os projetos</option>
+                <option value="__legacy">Aplicativo legado / padrão</option>
                 {projects.map((item) => (
                   <option key={item.slug} value={item.slug}>
                     {item.name}
@@ -430,26 +495,44 @@ export default function Dashboard({
                 <Icon name="plus" /> Novo projeto
               </button>
             </div>
-            <nav aria-label="Navegação do projeto">
-              {menu.map(([view, label, icon], index) => (
-                <div key={view}>
-                  {index === 4 && (
-                    <p className={styles.navLabel}>CONFIGURAÇÕES DO PROJETO</p>
-                  )}
-                  <a
-                    href={link(view)}
-                    aria-current={section === view ? "page" : undefined}
-                    className={section === view ? styles.active : ""}
-                  >
-                    <Icon name={icon} />
-                    <span>{label}</span>
-                  </a>
+            <nav aria-label="Navegação">
+              <a
+                href="/"
+                className={
+                  !project && !legacy && section === "overview"
+                    ? styles.active
+                    : ""
+                }
+              >
+                <Icon name="grid" />
+                <span>Todos os projetos</span>
+              </a>
+              {groups.map((group) => (
+                <div key={group.label}>
+                  <p className={styles.navLabel}>{group.label}</p>
+                  {group.items.map(([view, label, icon]) => (
+                    <a
+                      key={view}
+                      href={link(view)}
+                      aria-current={section === view ? "page" : undefined}
+                      className={section === view ? styles.active : ""}
+                    >
+                      <Icon name={icon} />
+                      <span>{label}</span>
+                    </a>
+                  ))}
                 </div>
               ))}
-              <p className={styles.navLabel}>CONTA</p>
+              <p className={styles.navLabel}>GERAL</p>
+              <a
+                href="/?section=integrations"
+                className={section === "integrations" ? styles.active : ""}
+              >
+                <Icon name="settings" />
+                <span>Integrações</span>
+              </a>
               <a
                 href="/?section=account"
-                aria-current={section === "account" ? "page" : undefined}
                 className={section === "account" ? styles.active : ""}
               >
                 <Icon name="settings" />
@@ -477,7 +560,9 @@ export default function Dashboard({
                 vDeploy <span>/</span>{" "}
                 {section === "account"
                   ? "Minha conta"
-                  : current?.name || "Projetos"}
+                  : section === "integrations"
+                    ? "Integrações"
+                    : current?.name || (legacy ? "Legado" : "Projetos")}
               </div>
               <span className={styles.badge}>Servidor próprio</span>
             </header>
@@ -516,6 +601,25 @@ export default function Dashboard({
                   {notice}
                 </p>
               )}
+              {section === "integrations" && <GithubIntegration />}
+              {section === "ios-builds" && project && (
+                <section className={styles.panel}>
+                  <h2>iOS · TestFlight</h2>
+                  <p>
+                    A compilação iOS ainda não está configurada. Ela poderá
+                    rodar em macOS na nuvem, sem um Mac próprio.
+                  </p>
+                  <p>
+                    Para instalar no iPhone via TestFlight, configure Apple
+                    Developer Program, App Store Connect, certificados e perfil
+                    de provisionamento. Cadastre as credenciais e dispositivos
+                    nos menus de iOS.
+                  </p>
+                  <a className={styles.button} href={link("ios-credentials")}>
+                    Credenciais iOS
+                  </a>
+                </section>
+              )}
               {section === "account" && profile && (
                 <AccountSettings profile={profile} />
               )}
@@ -530,7 +634,7 @@ export default function Dashboard({
                   suas permissões.
                 </p>
               )}
-              {section === "overview" && !project && (
+              {section === "overview" && !project && !legacy && (
                 <>
                   <p className={styles.subtitle}>
                     Escolha um aplicativo para gerenciar atualizações e
@@ -538,22 +642,34 @@ export default function Dashboard({
                   </p>
                   <div className={styles.projectGrid}>
                     {projects.map((item) => (
-                      <a
-                        className={styles.projectCard}
-                        key={item.slug}
-                        href={link("overview", item.slug)}
-                      >
-                        <ProjectAvatar
-                          name={item.name}
-                          project={item.slug}
-                          hasIcon={item.hasIcon}
-                        />
-                        <h2>{item.name}</h2>
+                      <article className={styles.projectCard} key={item.slug}>
+                        <div className={styles.cardTop}>
+                          <ProjectAvatar
+                            name={item.name}
+                            project={item.slug}
+                            hasIcon={item.hasIcon}
+                          />
+                          <a
+                            className={styles.primary}
+                            href={link("builds", item.slug)}
+                          >
+                            Gerar APK
+                          </a>
+                        </div>
+                        <a
+                          className={styles.cardTitle}
+                          href={link("overview", item.slug)}
+                        >
+                          <h2>{item.name}</h2>
+                        </a>
                         <p>{item.slug}</p>
-                        <span className={styles.cardFooter}>
+                        <a
+                          className={styles.cardFooter}
+                          href={link("overview", item.slug)}
+                        >
                           Abrir projeto <span>→</span>
-                        </span>
-                      </a>
+                        </a>
+                      </article>
                     ))}
                     <button
                       className={styles.newCard}
@@ -573,7 +689,7 @@ export default function Dashboard({
                       Atualizações anteriores à criação de projetos continuam
                       disponíveis.
                     </p>
-                    <a href={link("updates", "")}>
+                    <a href="/?section=updates&legacy=1">
                       Consultar atualizações legadas →
                     </a>
                   </details>
@@ -623,13 +739,27 @@ export default function Dashboard({
                   />
                 </>
               )}
-              {["credentials", "tokens", "devices", "environment"].includes(
-                section,
-              ) && (
+              {[
+                "credentials",
+                "android-credentials",
+                "ios-credentials",
+                "tokens",
+                "devices",
+                "environment",
+              ].includes(section) && (
                 <ProjectSettings
                   key={project + section}
                   project={project}
-                  kind={section}
+                  kind={
+                    section.endsWith("-credentials") ? "credentials" : section
+                  }
+                  platform={
+                    section === "android-credentials"
+                      ? "android"
+                      : section === "ios-credentials"
+                        ? "ios"
+                        : undefined
+                  }
                   onRequestProject={() => {
                     setMessage("");
                     setNewProject(true);

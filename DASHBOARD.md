@@ -1,4 +1,4 @@
-# Painel OTA
+# vDeploy — Painel OTA
 
 ## Implantação
 Usar a branch main após integração. Dockerfile e contexto na raiz. Porta 3000.
@@ -74,6 +74,30 @@ O token só permite publicar no próprio projeto; não permite rollback nem aces
 Um workflow GitHub Actions pode chamar essa API, mas nenhum workflow de publicação foi conectado automaticamente.
 
 ## Verificação
-Testes: node --test tests/admin.test.cjs tests/settings.test.cjs
+Testes: node --test tests/admin.test.cjs tests/settings.test.cjs tests/account.test.cjs
 Build: npm ci && npm run build
 Validar a entrega com um app de teste antes de publicar para passageiros.
+
+## Minha conta
+No menu lateral, abrir **Minha conta** para editar o nome de exibição e o e-mail de contato.
+O e-mail é informativo: não há confirmação, notificações ou recuperação de acesso por e-mail.
+O usuário de login continua definido por DASHBOARD_USERNAME no EasyPanel.
+
+A senha inicial vem de DASHBOARD_PASSWORD. Depois de alterada pelo painel, vale a senha
+armazenada como hash scrypt (com salt aleatório) no volume, nunca em texto puro.
+As duas variáveis de ambiente continuam obrigatórias; editar DASHBOARD_PASSWORD não
+substitui uma senha já alterada no painel. Não remover o volume ao implantar.
+Alterar a senha ou encerrar todas as sessões exige a senha atual e invalida todas as
+sessões de navegador, incluindo a atual. Os tokens dos projetos têm revogação separada.
+A sessão dura no máximo 8 horas. Ainda não há OAuth, passkeys nem autenticação em dois fatores.
+
+Perfil, hash e versão das sessões ficam em /app/updates/.admin/account/profile.json,
+com permissão 0600. Essa configuração pertence à conta do servidor, não a um projeto.
+Para recuperar um acesso perdido: pare o serviço no EasyPanel, faça backup privado desse
+arquivo e remova somente profile.json; configure uma nova DASHBOARD_PASSWORD forte e
+reinicie o serviço. Isso restaura o perfil padrão e a senha inicial, preservando projetos,
+credenciais e tokens. Trocar também a variável é necessário para invalidar cookies antigos.
+
+A identidade vDeploy inclui marca vetorial, favicon e nome no login e na navegação.
+As mudanças do dashboard são registradas em commits descritivos em feat/ota-dashboard,
+validadas e integradas à main, que permanece como branch de implantação.

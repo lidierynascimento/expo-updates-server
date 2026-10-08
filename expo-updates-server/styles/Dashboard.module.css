@@ -674,3 +674,49 @@
     margin: 5vh auto;
   }
 }
+
+.accountSettings {
+  max-width: 760px;
+  display: grid;
+  gap: 18px;
+}
+.accountSettings .panel {
+  padding: 22px;
+}
+.accountSettings form {
+  max-width: 460px;
+  display: grid;
+  gap: 14px;
+}
+.accountSettings form p {
+  margin: -4px 0 2px;
+  font-size: 12px;
+}
+.accountSettings form button {
+  justify-self: start;
+}
+.accountSettings input[readonly] {
+  background: #f6f8fa;
+  color: #59636e;
+}
+.success {
+  background: #edf9f0;
+  border: 1px solid #ace1bb;
+  color: #1a6332 !important;
+  padding: 12px 16px;
+  border-radius: 6px;
+}
+.brandIcon {
+  background: transparent;
+}
+.brandIcon svg {
+  width: 28px;
+  height: 28px;
+}
+.account strong {
+  display: block;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

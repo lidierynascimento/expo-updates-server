@@ -1,4 +1,7 @@
 import Head from "next/head";
+import BrandMark from "../components/BrandMark";
+import AccountSettings, { type Profile } from "../components/AccountSettings";
+const account = require("../common/admin-account.cjs");
 import Dialog from "../components/Dialog";
 import ProjectSettings from "../components/ProjectSettings";
 import styles from "../styles/Dashboard.module.css";
@@ -17,6 +20,8 @@ type Release = {
   valid: boolean;
 };
 type Props = {
+  profile: Profile | null;
+  notice: string;
   section: string;
   projects: { name: string; slug: string }[];
   project: string;
@@ -35,6 +40,11 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   const empty: Props = {
+    profile: null,
+    notice:
+      query.signedout === "1"
+        ? "Sessões encerradas. Entre novamente para continuar."
+        : "",
     section: "overview",
     projects: [],
     project: "",
@@ -138,9 +148,12 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
           "devices",
           "environment",
           "general",
+          "account",
         ].includes(query.section)
           ? query.section
           : "overview",
+      profile: account.profile(),
+      notice: query.saved === "1" ? "Perfil salvo com sucesso." : "",
       releases,
       projects,
       project,
@@ -153,6 +166,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
 };
 
 export default function Dashboard({
+  profile,
+  notice,
   section,
   projects,
   project,
@@ -295,6 +310,7 @@ export default function Dashboard({
     devices: "Dispositivos Apple",
     environment: "Variáveis de ambiente",
     general: "Configurações do projeto",
+    account: "Minha conta",
   };
   const menu = [
     ["overview", "Visão geral", "grid"],
@@ -309,17 +325,19 @@ export default function Dashboard({
   return (
     <div className={styles.app}>
       <Head>
-        <title>{titles[section]} · Expo OTA</title>
+        <title>{titles[section]} · vDeploy</title>
+        <link rel="icon" href="/vdeploy.svg" type="image/svg+xml" />
         <meta name="robots" content="noindex,nofollow" />
       </Head>
       {!authorized ? (
         <main className={styles.login}>
           <div className={styles.loginBrand}>
-            <Icon name="code" /> Expo OTA
+            <BrandMark /> vDeploy
           </div>
           <section className={styles.panel}>
             <h1>Entre no seu painel</h1>
-            <p>Gerencie os aplicativos da VDigitals Lab.</p>
+            <p>Seus aplicativos. Suas atualizações. Seu servidor.</p>
+            {notice && <p role="status">{notice}</p>}
             {configured ? (
               <form onSubmit={login}>
                 <label>
@@ -361,10 +379,10 @@ export default function Dashboard({
           <aside className={styles.sidebar}>
             <a href="/" className={styles.brand}>
               <span className={styles.brandIcon}>
-                <Icon name="code" />
+                <BrandMark />
               </span>
               <span>
-                Expo OTA<small>VDigitals Lab</small>
+                vDeploy<small>by VDigitals Lab</small>
               </span>
             </a>
             <div className={styles.projectSelect}>
@@ -408,11 +426,24 @@ export default function Dashboard({
                   </a>
                 </div>
               ))}
+              <p className={styles.navLabel}>CONTA</p>
+              <a
+                href="/?section=account"
+                aria-current={section === "account" ? "page" : undefined}
+                className={section === "account" ? styles.active : ""}
+              >
+                <Icon name="settings" />
+                <span>Minha conta</span>
+              </a>
             </nav>
             <div className={styles.account}>
-              <span className={styles.avatar}>VD</span>
+              <span className={styles.avatar}>
+                {(profile?.name || "AD").slice(0, 2).toUpperCase()}
+              </span>
               <div>
-                <strong>Administrador</strong>
+                <a href="/?section=account">
+                  <strong>{profile?.name || "Administrador"}</strong>
+                </a>
                 <small>Acesso ao servidor</small>
               </div>
               <button title="Sair" aria-label="Sair" onClick={logout}>
@@ -423,7 +454,10 @@ export default function Dashboard({
           <div className={styles.content}>
             <header className={styles.topbar}>
               <div className={styles.breadcrumb}>
-                VDigitals Lab <span>/</span> {current?.name || "Projetos"}
+                vDeploy <span>/</span>{" "}
+                {section === "account"
+                  ? "Minha conta"
+                  : current?.name || "Projetos"}
               </div>
               <span className={styles.badge}>Servidor próprio</span>
             </header>
@@ -431,7 +465,11 @@ export default function Dashboard({
               <div className={styles.pageHeading}>
                 <div>
                   <p className={styles.eyebrow}>
-                    {project ? current?.slug : "WORKSPACE"}
+                    {section === "account"
+                      ? "PREFERÊNCIAS PESSOAIS"
+                      : project
+                        ? current?.slug
+                        : "WORKSPACE"}
                   </p>
                   <h1>{titles[section]}</h1>
                 </div>
@@ -453,6 +491,14 @@ export default function Dashboard({
                   )}
                 </div>
               </div>
+              {notice && (
+                <p role="status" className={styles.success}>
+                  {notice}
+                </p>
+              )}
+              {section === "account" && profile && (
+                <AccountSettings profile={profile} />
+              )}
               {message && !newProject && (
                 <p role="alert" className={styles.alert}>
                   {message}

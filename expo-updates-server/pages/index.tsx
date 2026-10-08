@@ -1,4 +1,5 @@
 import Head from "next/head";
+import ProjectBuilds from "../components/ProjectBuilds";
 import ProjectIcon, { ProjectAvatar } from "../components/ProjectIcon";
 import ConnectProject from "../components/ConnectProject";
 import DeleteProject from "../components/DeleteProject";
@@ -152,6 +153,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
           "overview",
           "updates",
           "publish",
+          "builds",
           "credentials",
           "tokens",
           "devices",
@@ -321,6 +323,7 @@ export default function Dashboard({
     overview: project ? "Visão geral do projeto" : "Seus projetos",
     updates: "Atualizações OTA",
     publish: "Publicar atualização",
+    builds: "Builds e downloads",
     credentials: "Credenciais Android e iOS",
     tokens: "Tokens de acesso",
     devices: "Dispositivos Apple",
@@ -332,6 +335,7 @@ export default function Dashboard({
     ["overview", "Visão geral", "grid"],
     ["updates", "Atualizações OTA", "refresh"],
     ["publish", "Publicar atualização", "upload"],
+    ["builds", "Builds e downloads", "phone"],
     ["credentials", "Credenciais Android e iOS", "key"],
     ["tokens", "Tokens de acesso", "shield"],
     ["devices", "Dispositivos Apple", "phone"],
@@ -429,7 +433,7 @@ export default function Dashboard({
             <nav aria-label="Navegação do projeto">
               {menu.map(([view, label, icon], index) => (
                 <div key={view}>
-                  {index === 3 && (
+                  {index === 4 && (
                     <p className={styles.navLabel}>CONFIGURAÇÕES DO PROJETO</p>
                   )}
                   <a
@@ -740,6 +744,17 @@ export default function Dashboard({
                   </p>
                 </section>
               )}
+              {section === "builds" &&
+                (project ? (
+                  <ProjectBuilds key={project} project={project} />
+                ) : (
+                  <section className={styles.empty}>
+                    <h2>Selecione um projeto</h2>
+                    <p>
+                      Escolha o aplicativo no menu para configurar seus builds.
+                    </p>
+                  </section>
+                ))}
               {section === "general" && (
                 <section className={styles.panel}>
                   <h2>{current?.name || "Aplicativo legado / padrão"}</h2>
